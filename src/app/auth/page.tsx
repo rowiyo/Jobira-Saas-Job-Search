@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/hooks/useAuth'
+import { useState } from 'react'
+import { supabase } from '@/lib/supabase'
 import { Header } from '@/components/common/Header'
 
 export default function AuthenticationPage() {
@@ -63,7 +62,7 @@ export default function AuthenticationPage() {
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome to ResumeHunter
+              Welcome to PandaVista
             </h1>
             <p className="text-gray-600">
               AI-powered job search across all major job boards

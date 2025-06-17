@@ -7,7 +7,17 @@ import { ResumeUpload } from '@/components/resume/ResumeUpload'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { FileText, Search, User } from 'lucide-react'
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { FileText, Search, User, Trash2 } from 'lucide-react'
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
@@ -15,6 +25,8 @@ export default function Dashboard() {
   const [resumes, setResumes] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState('overview')
   const [searchingJobs, setSearchingJobs] = useState<string | null>(null)
+  const [deletingResume, setDeletingResume] = useState<string | null>(null)
+  const [resumeToDelete, setResumeToDelete] = useState<{id: string, filename: string} | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -36,18 +48,60 @@ export default function Dashboard() {
 
   const loadResumes = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // First get resumes
+      const { data: resumesData, error: resumesError } = await supabase
         .from('resumes')
         .select('*')
         .eq('user_id', userId)
         .eq('is_active', true)
         .order('upload_date', { ascending: false })
 
-      if (error) {
-        console.error('Error loading resumes:', error)
-      } else {
-        setResumes(data || [])
+      if (resumesError) {
+        console.error('Error loading resumes:', resumesError)
+        return
       }
+
+      // Then get job search stats for each resume
+      const resumesWithStats = await Promise.all(
+        (resumesData || []).map(async (resume) => {
+          // Get the most recent job search for this resume
+          const { data: searchData } = await supabase
+            .from('job_searches')
+            .select('id, total_results, search_date')
+            .eq('resume_id', resume.id)
+            .order('search_date', { ascending: false })
+            .limit(1)
+            .single()
+
+          if (searchData) {
+            // Count unique job boards from search results
+            const { data: jobBoardsData } = await supabase
+              .from('job_search_results')
+              .select('job_board')
+              .eq('search_id', searchData.id)
+
+            const uniqueJobBoards = new Set(jobBoardsData?.map(item => item.job_board) || [])
+
+            return {
+              ...resume,
+              last_search_date: searchData.search_date,
+              last_search_id: searchData.id,
+              total_jobs_found: searchData.total_results || 0,
+              job_boards_searched: uniqueJobBoards.size
+            }
+          }
+
+          return {
+            ...resume,
+            last_search_date: null,
+            last_search_id: null,
+            total_jobs_found: 0,
+            job_boards_searched: 0
+          }
+        })
+      )
+
+      setResumes(resumesWithStats)
     } catch (err) {
       console.error('Failed to load resumes:', err)
     }
@@ -85,18 +139,9 @@ export default function Dashboard() {
       }
 
       const result = await response.json()
-console.log('Job search completed:', result)
+      console.log('Job search completed:', result)
 
-// Handle test response format
-alert(`🎉 Found ${result.totalJobs} jobs across ${result.jobBoardsSearched} job boards!
-
-📍 Location: ${result.searchSummary.location}
-🎯 Keywords: ${result.searchSummary.keywords.slice(0, 5).join(', ')}
-💼 Job Title: ${result.searchSummary.jobTitle}
-📊 Experience Level: ${result.searchSummary.experienceLevel}
-
-Top Jobs:
-${result.jobs.slice(0, 3).map((job, i) => `${i+1}. ${job.jobTitle} at ${job.company} (${job.location}) - ${job.salary || 'Salary not listed'}`).join('\n')}`)
+      alert(`🎉 Found ${result.totalJobs} jobs across ${result.jobBoardsSearched} job boards!\n\nKeywords: ${result.searchSummary.keywords.slice(0, 5).join(', ')}\nLocation: ${result.searchSummary.location}`)
       
       if (user) {
         await loadResumes(user.id)
@@ -107,6 +152,51 @@ ${result.jobs.slice(0, 3).map((job, i) => `${i+1}. ${job.jobTitle} at ${job.comp
       alert(`❌ Job search failed: ${error.message}`)
     } finally {
       setSearchingJobs(null)
+    }
+  }
+
+  const handleDeleteResume = async () => {
+    if (!resumeToDelete) return
+    
+    setDeletingResume(resumeToDelete.id)
+    
+    try {
+      // First, delete the file from storage
+      const resume = resumes.find(r => r.id === resumeToDelete.id)
+      if (resume?.file_path) {
+        const { error: storageError } = await supabase.storage
+          .from('resumes')
+          .remove([resume.file_path])
+        
+        if (storageError) {
+          console.error('Error deleting file from storage:', storageError)
+        }
+      }
+
+      // Then, soft delete from database (set is_active to false)
+      const { error: dbError } = await supabase
+        .from('resumes')
+        .update({ is_active: false })
+        .eq('id', resumeToDelete.id)
+
+      if (dbError) {
+        throw dbError
+      }
+
+      // Reload resumes
+      if (user) {
+        await loadResumes(user.id)
+      }
+
+      // Show success message
+      alert(`✅ Resume "${resumeToDelete.filename}" has been deleted successfully.`)
+      
+    } catch (error: any) {
+      console.error('Error deleting resume:', error)
+      alert(`❌ Failed to delete resume: ${error.message}`)
+    } finally {
+      setDeletingResume(null)
+      setResumeToDelete(null)
     }
   }
 
@@ -136,7 +226,7 @@ ${result.jobs.slice(0, 3).map((job, i) => `${i+1}. ${job.jobTitle} at ${job.comp
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <h1 className="text-3xl font-bold text-gray-900">
-              Job Aggregator
+              PandaVista
             </h1>
             <div className="flex items-center space-x-4">
               <span className="text-gray-700">
@@ -291,6 +381,21 @@ ${result.jobs.slice(0, 3).map((job, i) => `${i+1}. ${job.jobTitle} at ${job.comp
                                 <p className="text-sm text-gray-500">
                                   Size: {Math.round(resume.file_size / 1024)} KB
                                 </p>
+                                {resume.total_jobs_found > 0 && (
+                                  <div className="mt-2 p-2 bg-blue-50 rounded-md">
+                                    <p className="text-sm font-medium text-blue-700">
+                                      📊 Last Search Results:
+                                    </p>
+                                    <p className="text-sm text-blue-600">
+                                      {resume.total_jobs_found} jobs found across {resume.job_boards_searched} job boards
+                                    </p>
+                                    {resume.last_search_date && (
+                                      <p className="text-sm text-blue-600">
+                                        Searched on {new Date(resume.last_search_date).toLocaleDateString()}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
                                 {resume.extracted_keywords && (
                                   <div className="mt-2">
                                     <p className="text-sm font-medium text-green-600">
@@ -320,6 +425,15 @@ ${result.jobs.slice(0, 3).map((job, i) => `${i+1}. ${job.jobTitle} at ${job.comp
                               <Button size="sm" variant="outline">
                                 View Details
                               </Button>
+                              {resume.total_jobs_found > 0 && resume.last_search_id && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => router.push(`/dashboard/results/${resume.last_search_id}`)}
+                                >
+                                  View Results
+                                </Button>
+                              )}
                               <Button 
                                 size="sm" 
                                 variant="default"
@@ -332,7 +446,21 @@ ${result.jobs.slice(0, 3).map((job, i) => `${i+1}. ${job.jobTitle} at ${job.comp
                                     Searching...
                                   </>
                                 ) : (
-                                  'Search Jobs'
+                                  resume.total_jobs_found > 0 ? 'Search Again' : 'Search Jobs'
+                                )}
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => setResumeToDelete({id: resume.id, filename: resume.filename})}
+                                disabled={deletingResume === resume.id}
+                              >
+                                {deletingResume === resume.id ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                  </>
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
                                 )}
                               </Button>
                             </div>
@@ -360,6 +488,27 @@ ${result.jobs.slice(0, 3).map((job, i) => `${i+1}. ${job.jobTitle} at ${job.comp
           </Tabs>
         </div>
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!resumeToDelete} onOpenChange={() => setResumeToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Resume</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{resumeToDelete?.filename}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteResume}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
