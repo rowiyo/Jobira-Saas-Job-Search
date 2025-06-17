@@ -48,7 +48,7 @@ export default function LandingPage() {
     {
       name: "Sarah Chen",
       role: "Software Engineer",
-      content: "PandaVista found me opportunities I never would have discovered on my own. Landed my dream job in just 3 weeks!",
+      content: "Jobira found me opportunities I never would have discovered on my own. Landed my dream job in just 3 weeks!",
       rating: 5
     },
     {
@@ -72,9 +72,11 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                PandaVista
-              </span>
+              <img 
+                src="/jobira_logo_sm.png" 
+                alt="Jobira" 
+                className="h-8 w-auto"
+                />
             </div>
             
             <div className="hidden md:flex items-center space-x-8">
@@ -278,7 +280,7 @@ export default function LandingPage() {
             Ready to 10x Your Job Search?
           </h2>
           <p className="text-xl text-gray-600 mb-8">
-            Join thousands of job seekers who've found their dream roles faster with PandaVista
+            Join thousands of job seekers who've found their dream roles faster with Jobira
           </p>
           <a href="/auth" className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
             Get Started Free
@@ -302,7 +304,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-2xl font-bold mb-4">PandaVista</h3>
+              <h3 className="text-2xl font-bold mb-4">Jobira</h3>
               <p className="text-gray-400">
                 AI-powered job search across all major job boards
               </p>
@@ -333,7 +335,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 PandaVista. All rights reserved.</p>
+            <p>&copy; 2024 Jobira. All rights reserved.</p>
           </div>
         </div>
       </footer>

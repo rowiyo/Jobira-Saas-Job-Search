@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PandaVista",
+  title: "Jobira - AI-Powered Job Search",
   description: "AI-powered job search across all major job boards",
 };
 
