@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-export default function AuthPage() {
+export default function AuthenticationPage() {
+  const router = useRouter()
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -11,10 +13,36 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        console.log('User already logged in, redirecting...')
+        router.push('/dashboard')
+      }
+    }
+    
+    checkUser()
+    
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session)
+      if (event === 'SIGNED_IN' && session) {
+        console.log('User signed in, redirecting to dashboard')
+        router.push('/dashboard')
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [router])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setMessage('')
+
+    console.log('Attempting login...')
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -23,9 +51,11 @@ export default function AuthPage() {
 
     if (error) {
       setMessage(`Error: ${error.message}`)
+      console.error('Login error:', error)
     } else {
       setMessage('Logged in successfully!')
-      // You would redirect to dashboard here
+      console.log('Login successful:', data)
+      // The useEffect will handle the redirect when auth state changes
     }
     setLoading(false)
   }
@@ -57,8 +87,11 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6">
         <h1 className="text-2xl font-bold text-center mb-6">
-          {isLogin ? 'Sign In' : 'Sign Up'}
+          Job Aggregator
         </h1>
+        <h2 className="text-xl font-semibold text-center mb-6">
+          {isLogin ? 'Sign In' : 'Sign Up'}
+        </h2>
 
         {message && (
           <div className={`p-3 rounded mb-4 ${message.includes('Error') 
