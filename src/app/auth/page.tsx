@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Header } from '@/components/common/Header'
+import Link from 'next/link'
 
 export default function AuthenticationPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -56,13 +56,34 @@ export default function AuthenticationPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header showAuthButton={false} />
+      {/* Header matching dashboard style */}
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <Link href="/" className="hover:opacity-80 transition-opacity">
+              <img 
+                src="/jobira_logo_sm.png" 
+                alt="Jobira" 
+                className="h-10 w-auto"
+              />
+            </Link>
+            <div className="flex items-center space-x-4">
+              <Link 
+                href="/" 
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Home
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
       
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome to PandaVista
+              Welcome to Jobira
             </h1>
             <p className="text-gray-600">
               AI-powered job search across all major job boards

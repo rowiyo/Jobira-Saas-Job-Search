@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { ResumeUpload } from '@/components/resume/ResumeUpload'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   AlertDialog,
@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { FileText, Search, User, Trash2, ChevronRight, Home, BarChart, Bell } from 'lucide-react'
+import { ManualSearchForm, ManualSearchParams } from '@/components/search/ManualSearchForm'
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
@@ -69,7 +70,6 @@ export default function Dashboard() {
 
   const loadResumes = async (userId: string) => {
     try {
-      // First get resumes
       const { data: resumesData, error: resumesError } = await supabase
         .from('resumes')
         .select('*')
@@ -82,10 +82,8 @@ export default function Dashboard() {
         return
       }
 
-      // Then get job search stats for each resume
       const resumesWithStats = await Promise.all(
         (resumesData || []).map(async (resume) => {
-          // Get the most recent job search for this resume
           const { data: searchData } = await supabase
             .from('job_searches')
             .select('id, total_results, search_date')
@@ -95,7 +93,6 @@ export default function Dashboard() {
             .single()
 
           if (searchData) {
-            // Count unique job boards from search results
             const { data: jobBoardsData } = await supabase
               .from('job_search_results')
               .select('job_board')
@@ -159,14 +156,12 @@ export default function Dashboard() {
     setSearchingJobs(resumeId)
     setSearchProgress(0)
     
-    // Set active resume
     const resume = resumes.find(r => r.id === resumeId)
     if (resume) {
       setActiveResume(resume)
     }
     
-    // Simulate progress
-    const progressInterval = setInterval(() => {
+    let progressInterval = setInterval(() => {
       setSearchProgress((prev) => {
         if (prev >= 90) {
           clearInterval(progressInterval)
@@ -179,15 +174,24 @@ export default function Dashboard() {
     try {
       console.log('Starting job search for resume:', resumeId)
       
+      const searchParams = {
+        jobTitle: resume?.extracted_keywords?.currentJobTitle || 'Software Engineer',
+        location: 'Massachusetts, USA',
+        locationType: 'any',
+        keywords: resume?.extracted_keywords?.searchKeywords || [],
+        experienceLevel: resume?.extracted_keywords?.experienceLevel || 'mid'
+      }
+      
       const response = await fetch('/api/search-jobs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          resumeId: resumeId,
           userId: user.id,
-          searchLocation: 'Massachusetts, USA'
+          searchType: 'resume',
+          resumeId: resumeId,
+          searchParams: searchParams
         })
       })
 
@@ -203,19 +207,17 @@ export default function Dashboard() {
       clearInterval(progressInterval)
       setSearchProgress(100)
       
-      // Store the search results
       setSearchResults(prev => ({
         ...prev,
         [resumeId]: {
           status: 'success',
-          message: `Found ${result.totalJobs} jobs across ${result.jobBoardsSearched} job boards!`,
+          message: `Found ${result.totalJobs} jobs across ${result.jobBoardsSearched || 1} job boards!`,
           totalJobs: result.totalJobs,
-          jobBoardsSearched: result.jobBoardsSearched,
+          jobBoardsSearched: result.jobBoardsSearched || 1,
           searchId: result.searchId
         }
       }))
       
-      // Add notification
       setNotifications(prev => [{
         id: Date.now().toString(),
         type: 'search_complete',
@@ -246,13 +248,93 @@ export default function Dashboard() {
     }
   }
 
+  const handleManualSearch = async (searchParams: ManualSearchParams) => {
+    setSearchingJobs('manual')
+    setSearchProgress(0)
+    
+    let progressInterval = setInterval(() => {
+      setSearchProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(progressInterval)
+          return 90
+        }
+        return prev + 10
+      })
+    }, 500)
+    
+    try {
+      console.log('Starting manual job search:', searchParams)
+      
+      const response = await fetch('/api/search-jobs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          searchType: 'manual',
+          searchParams: {
+            jobTitle: searchParams.jobTitle,
+            location: searchParams.location,
+            locationType: searchParams.locationType,
+            salaryMin: searchParams.salaryMin,
+            salaryMax: searchParams.salaryMax,
+            experienceLevel: searchParams.experienceLevel,
+            keywords: searchParams.keywords
+          }
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Manual search API error response:', errorText)
+        throw new Error(`Job search failed (${response.status}): ${errorText.substring(0, 200)}`)
+      }
+
+      const result = await response.json()
+      console.log('Manual search completed:', result)
+
+      clearInterval(progressInterval)
+      setSearchProgress(100)
+      
+      setNotifications(prev => [{
+        id: Date.now().toString(),
+        type: 'search_complete',
+        message: `Manual search complete! Found ${result.totalJobs} ${searchParams.jobTitle} jobs in ${searchParams.location}`,
+        read: false,
+        timestamp: new Date()
+      }, ...prev])
+      
+      router.push(`/dashboard/results/${result.searchId}`)
+      
+      if (user) {
+        await loadTodayStats(user.id)
+      }
+
+    } catch (error: any) {
+      console.error('Manual search error:', error)
+      clearInterval(progressInterval)
+      setSearchProgress(0)
+      
+      setNotifications(prev => [{
+        id: Date.now().toString(),
+        type: 'error',
+        message: `Search failed: ${error.message}`,
+        read: false,
+        timestamp: new Date()
+      }, ...prev])
+    } finally {
+      setSearchingJobs(null)
+      setTimeout(() => setSearchProgress(0), 1000)
+    }
+  }
+
   const handleDeleteResume = async () => {
     if (!resumeToDelete) return
     
     setDeletingResume(resumeToDelete.id)
     
     try {
-      // First, delete the file from storage
       const resume = resumes.find(r => r.id === resumeToDelete.id)
       if (resume?.file_path) {
         const { error: storageError } = await supabase.storage
@@ -264,7 +346,6 @@ export default function Dashboard() {
         }
       }
 
-      // Then, soft delete from database (set is_active to false)
       const { error: dbError } = await supabase
         .from('resumes')
         .update({ is_active: false })
@@ -274,12 +355,10 @@ export default function Dashboard() {
         throw dbError
       }
 
-      // Reload resumes
       if (user) {
         await loadResumes(user.id)
       }
 
-      // Show success message inline
       setSearchResults(prev => ({
         ...prev,
         [resumeToDelete.id]: {
@@ -288,7 +367,6 @@ export default function Dashboard() {
         }
       }))
       
-      // Clear the message after 3 seconds
       setTimeout(() => {
         setSearchResults(prev => {
           const newResults = { ...prev }
@@ -313,15 +391,15 @@ export default function Dashboard() {
   }
 
   const handleLogout = async () => {
-  await supabase.auth.signOut()
-  router.push('/auth')
-}
+    await supabase.auth.signOut()
+    router.push('/auth')
+  }
 
-const markNotificationsAsRead = () => {
-  setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-}
+  const markNotificationsAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+  }
 
-const unreadCount = notifications.filter(n => !n.read).length
+  const unreadCount = notifications.filter(n => !n.read).length
 
   const getBreadcrumbs = () => {
     const breadcrumbs = [
@@ -351,14 +429,7 @@ const unreadCount = notifications.filter(n => !n.read).length
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-2">Loading dashboard...</p>
-          {/* Click outside to close notifications */}
-      {showNotifications && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => setShowNotifications(false)}
-        />
-      )}
-    </div>
+        </div>
       </div>
     )
   }
@@ -369,7 +440,6 @@ const unreadCount = notifications.filter(n => !n.read).length
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Progress Bar */}
       {searchProgress > 0 && (
         <div className="fixed top-0 left-0 right-0 z-50">
           <div className="h-1 bg-gray-200">
@@ -385,14 +455,13 @@ const unreadCount = notifications.filter(n => !n.read).length
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <Link href="/" className="hover:opacity-80 transition-opacity">
-            <img 
-            src="/jobira_logo_sm.png" 
-            alt="Jobira" 
-            className="h-10 w-auto"
-            />
-</Link>
+              <img 
+                src="/jobira_logo_sm.png" 
+                alt="Jobira" 
+                className="h-10 w-auto"
+              />
+            </Link>
             <div className="flex items-center space-x-4">
-              {/* Active Resume Indicator */}
               {activeResume && (
                 <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-lg text-sm">
                   <FileText className="h-4 w-4 text-gray-600" />
@@ -403,7 +472,6 @@ const unreadCount = notifications.filter(n => !n.read).length
                 </div>
               )}
               
-              {/* Quick Stats */}
               <div className="hidden md:flex items-center gap-4 text-sm">
                 <div className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full">
                   <span className="font-medium">{todayStats.jobsFound}</span> jobs found today
@@ -413,7 +481,6 @@ const unreadCount = notifications.filter(n => !n.read).length
                 </div>
               </div>
               
-              {/* Notifications */}
               <div className="relative">
                 <button 
                   onClick={() => {
@@ -471,7 +538,6 @@ const unreadCount = notifications.filter(n => !n.read).length
         </div>
       </header>
 
-      {/* Breadcrumbs */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
         <nav className="flex items-center gap-2 text-sm">
           {getBreadcrumbs().map((crumb, index) => (
@@ -631,7 +697,6 @@ const unreadCount = notifications.filter(n => !n.read).length
                                   Size: {Math.round(resume.file_size / 1024)} KB
                                 </p>
                                 
-                                {/* Search Results Status */}
                                 {searchResults[resume.id] && (
                                   <div className={`mt-2 p-3 rounded-md ${
                                     searchResults[resume.id].status === 'success' 
@@ -658,7 +723,6 @@ const unreadCount = notifications.filter(n => !n.read).length
                                   </div>
                                 )}
                                 
-                                {/* Previous Search Info */}
                                 {resume.total_jobs_found > 0 && !searchResults[resume.id] && (
                                   <div className="mt-2 p-2 bg-blue-50 rounded-md">
                                     <p className="text-sm font-medium text-blue-700">
@@ -701,13 +765,12 @@ const unreadCount = notifications.filter(n => !n.read).length
                               </div>
                             </div>
                             <div className="flex gap-2">
-                              
                               {resume.total_jobs_found > 0 && resume.last_search_id && (
                                 <Button 
                                   size="sm" 
                                   className="bg-green-500 hover:bg-green-600 text-white"
                                   onClick={() => router.push(`/dashboard/results/${resume.last_search_id}`)}
-                              >
+                                >
                                   View Results
                                 </Button>
                               )}
@@ -754,11 +817,15 @@ const unreadCount = notifications.filter(n => !n.read).length
               <Card>
                 <CardHeader>
                   <CardTitle>Manual Job Search</CardTitle>
+                  <CardDescription>
+                    Search for jobs across all major job boards without uploading a resume
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-500 text-center py-8">
-                    Manual job search feature coming soon! For now, use the resume-based search in the "My Resumes" tab.
-                  </p>
+                  <ManualSearchForm 
+                    onSearch={handleManualSearch}
+                    isSearching={searchingJobs === 'manual'}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -766,7 +833,6 @@ const unreadCount = notifications.filter(n => !n.read).length
         </div>
       </main>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!resumeToDelete} onOpenChange={() => setResumeToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -786,6 +852,13 @@ const unreadCount = notifications.filter(n => !n.read).length
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {showNotifications && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowNotifications(false)}
+        />
+      )}
     </div>
   )
 }
