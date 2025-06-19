@@ -156,7 +156,7 @@ async function scrapeRemoteOKJobs(keywords: string[]): Promise<JobResult[]> {
           `$${job.salary_min.toLocaleString()} - $${job.salary_max.toLocaleString()}` : 
           undefined,
         jobUrl: `https://remoteok.io/remote-jobs/${job.id}`,
-        description: job.description ? cleanText(job.description.substring(0, 200)) + '...' : 'Remote job opportunity',
+        description: job.description ? cleanText(job.description) : 'Remote job opportunity',
         postedDate: job.date ? new Date(job.date).toLocaleDateString() : 'Recently posted',
         relevanceScore: calculateRelevance(job.position, keywords)
       })

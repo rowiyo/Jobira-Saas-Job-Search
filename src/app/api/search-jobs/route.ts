@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { searchGlassdoor } from '@/lib/glassdoor-scraper'
+import { detectAndMergeDuplicates } from '@/utils/duplicateDetection' 
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -59,18 +60,44 @@ export async function POST(request: NextRequest) {
 
       console.log(`🎉 Total jobs found: ${glassdoorJobs.length}`)
 
-      if (glassdoorJobs.length > 0) {
-        const jobRecords = glassdoorJobs.map(job => ({
-          search_id: jobSearch.id,
-          job_board: job.jobBoard,
-          job_title: job.jobTitle,
-          company_name: job.company,
-          location: job.location,
-          job_url: job.jobUrl,
-          job_description: job.description,
-          salary_range: job.salary,
-          posted_date: new Date().toISOString().split('T')[0],
-          relevance_score: job.relevanceScore
+      const uniqueJobs = detectAndMergeDuplicates(glassdoorJobs)
+      console.log(`🔍 After removing duplicates: ${uniqueJobs.length} unique jobs`)
+
+      const jobsWithBoostedScores = uniqueJobs.map(job => {
+      let scoreBoost = 0;
+      const description = (job.description || '').toLowerCase();
+      const title = (job.jobTitle || '').toLowerCase();
+  
+      // Check each keyword
+      jobKeywords.forEach(keyword => {
+      const lowerKeyword = keyword.toLowerCase();
+      if (title.includes(lowerKeyword)) scoreBoost += 0.2;  // 20% boost for title match
+      if (description.includes(lowerKeyword)) scoreBoost += 0.1;  // 10% boost for description match
+      });
+  
+      // Apply boost (max relevance score is 1.0)
+      const newScore = Math.min((job.relevanceScore || 0.5) + scoreBoost, 1.0);
+  
+      return {
+       ...job,
+      relevanceScore: newScore
+    };
+      });
+
+console.log(`🎯 Applied keyword relevance boosts`);
+
+      if (jobsWithBoostedScores.length > 0) {
+      const jobRecords = jobsWithBoostedScores.map(job => ({
+        search_id: jobSearch.id,
+        job_board: job.jobBoard,
+        job_title: job.jobTitle,
+        company_name: job.company,
+        location: job.location,
+        job_url: job.jobUrl,
+        job_description: job.description,
+        salary_range: job.salary,
+        posted_date: new Date().toISOString().split('T')[0],
+        relevance_score: job.relevanceScore
         }))
 
         const { error: insertError } = await supabaseAdmin
@@ -88,8 +115,8 @@ export async function POST(request: NextRequest) {
         .from('job_searches')
         .update({
           status: 'completed',
-          total_results: glassdoorJobs.length
-        })
+          total_results: uniqueJobs.length
+      })
         .eq('id', jobSearch.id)
 
       console.log('✅ Job search completed successfully!')

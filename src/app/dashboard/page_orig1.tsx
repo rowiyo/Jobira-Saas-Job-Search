@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { ResumeUpload } from '@/components/resume/ResumeUpload'
-import { FavoriteJobs } from '@/components/jobs/FavoriteJobs'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -22,6 +21,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { FileText, Search, User, Trash2, ChevronRight, Home, BarChart, Bell, Star } from 'lucide-react'
 import { ManualSearchForm, ManualSearchParams } from '@/components/search/ManualSearchForm'
+import { FavoriteJobs } from '@/components/jobs/FavoriteJobs'
+
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
@@ -31,7 +32,6 @@ export default function Dashboard() {
   const [searchingJobs, setSearchingJobs] = useState<string | null>(null)
   const [deletingResume, setDeletingResume] = useState<string | null>(null)
   const [resumeToDelete, setResumeToDelete] = useState<{id: string, filename: string} | null>(null)
-  const [optimizingResume, setOptimizingResume] = useState<string | null>(null)
   const [searchResults, setSearchResults] = useState<{[key: string]: {
     status: 'success' | 'error',
     message: string,
@@ -250,64 +250,6 @@ export default function Dashboard() {
     }
   }
 
-  const handleATSOptimize = async (resumeId: string) => {
-    setOptimizingResume(resumeId)
-    
-    try {
-      console.log('Starting ATS optimization for resume:', resumeId)
-      
-      const response = await fetch('/api/ats-optimize', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          resumeId: resumeId,
-          userId: user.id
-        })
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('ATS optimization API error:', errorText)
-        throw new Error(`ATS optimization failed: ${errorText}`)
-      }
-
-      const result = await response.json()
-      console.log('ATS optimization completed:', result)
-      
-      // Show success notification
-      setNotifications(prev => [{
-        id: Date.now().toString(),
-        type: 'search_complete',
-        message: `Resume optimized! ATS Score: ${result.atsScore}%`,
-        read: false,
-        timestamp: new Date()
-      }, ...prev])
-      
-      // Refresh resumes list to show the new optimized version
-      if (user) {
-        await loadResumes(user.id)
-      }
-      
-      // Navigate to ATS optimized page
-      router.push('/dashboard/ats-optimized')
-      
-    } catch (error: any) {
-      console.error('ATS optimization error:', error)
-      
-      setNotifications(prev => [{
-        id: Date.now().toString(),
-        type: 'error',
-        message: `Optimization failed: ${error.message}`,
-        read: false,
-        timestamp: new Date()
-      }, ...prev])
-    } finally {
-      setOptimizingResume(null)
-    }
-  }
-
   const handleManualSearch = async (searchParams: ManualSearchParams) => {
     setSearchingJobs('manual')
     setSearchProgress(0)
@@ -471,13 +413,12 @@ export default function Dashboard() {
       const tabNames: { [key: string]: string } = {
         'upload': 'Upload Resume',
         'resumes': 'My Resumes',
-        'search': 'Job Search',
-        'favorites': 'Favorites'
+        'search': 'Job Search'
       }
       breadcrumbs.push({
         name: tabNames[activeTab] || activeTab,
         href: `/dashboard#${activeTab}`,
-        icon: activeTab === 'search' ? Search : activeTab === 'favorites' ? Star : FileText
+        icon: activeTab === 'search' ? Search : FileText
       })
     }
     
@@ -620,27 +561,27 @@ export default function Dashboard() {
         <div className="px-4 py-6 sm:px-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="overview" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="upload" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Upload Resume
-              </TabsTrigger>
-              <TabsTrigger value="resumes" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                My Resumes ({resumes.length})
-              </TabsTrigger>
-              <TabsTrigger value="search" className="flex items-center gap-2">
-                <Search className="h-4 w-4" />
-                Job Search
-              </TabsTrigger>
-              <TabsTrigger value="favorites" className="flex items-center gap-2">
-                <Star className="h-4 w-4" />
-                Favorites
-              </TabsTrigger>
-            </TabsList>
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+          Overview
+            </TabsTrigger>
+            <TabsTrigger value="upload" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+        Upload Resume
+            </TabsTrigger>
+            <TabsTrigger value="resumes" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+        My Resumes ({resumes.length})
+            </TabsTrigger>
+            <TabsTrigger value="search" className="flex items-center gap-2">
+            <Search className="h-4 w-4" />
+        Job Search
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="flex items-center gap-2">
+            <Star className="h-4 w-4" />
+        Favorites
+            </TabsTrigger>
+          </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -673,6 +614,7 @@ export default function Dashboard() {
                     </Button>
                   </CardContent>
                 </Card>
+                
 
                 <Card>
                   <CardHeader>
@@ -690,18 +632,12 @@ export default function Dashboard() {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>ATS Optimized:</span>
-                      <span className="font-semibold">
-                        {resumes.filter(r => r.is_ats_optimized).length}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
                       <span>Total Searches:</span>
-                      <span className="font-semibold">{todayStats.searchesRun}</span>
+                      <span className="font-semibold">0</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Jobs Found:</span>
-                      <span className="font-semibold">{todayStats.jobsFound}</span>
+                      <span className="font-semibold">0</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -723,9 +659,6 @@ export default function Dashboard() {
                             <span className="truncate">{resume.filename}</span>
                             {resume.extracted_keywords && (
                               <span className="text-green-600">✓</span>
-                            )}
-                            {resume.is_ats_optimized && (
-                              <span className="text-purple-600">★</span>
                             )}
                           </div>
                         ))}
@@ -770,13 +703,6 @@ export default function Dashboard() {
                                 <p className="text-sm text-gray-500">
                                   Size: {Math.round(resume.file_size / 1024)} KB
                                 </p>
-                                
-                                {resume.is_ats_optimized && (
-                                  <div className="mt-2 inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs">
-                                    <Star className="h-3 w-3" />
-                                    ATS Optimized
-                                  </div>
-                                )}
                                 
                                 {searchResults[resume.id] && (
                                   <div className={`mt-2 p-3 rounded-md ${
@@ -872,21 +798,6 @@ export default function Dashboard() {
                               </Button>
                               <Button 
                                 size="sm" 
-                                variant="secondary"
-                                onClick={() => handleATSOptimize(resume.id)}
-                                disabled={!resume.extracted_keywords || optimizingResume === resume.id}
-                              >
-                                {optimizingResume === resume.id ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2"></div>
-                                    Optimizing...
-                                  </>
-                                ) : (
-                                  'ATS Optimize'
-                                )}
-                              </Button>
-                              <Button 
-                                size="sm" 
                                 variant="destructive"
                                 onClick={() => setResumeToDelete({id: resume.id, filename: resume.filename})}
                                 disabled={deletingResume === resume.id}
@@ -925,8 +836,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
-
-            <TabsContent value="favorites">
+          <TabsContent value="favorites">
               <Card>
                 <CardHeader>
                   <CardTitle>My Favorite Jobs</CardTitle>
@@ -939,6 +849,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
+          
           </Tabs>
         </div>
       </main>
