@@ -84,13 +84,24 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (insertError) {
-      console.error('❌ Failed to create optimized resume:', insertError)
-      return NextResponse.json(
-        { error: 'Failed to create optimized resume' },
-        { status: 500 }
-      )
-    }
+   if (insertError) {
+  console.error('❌ Failed to create optimized resume:', insertError)
+  console.error('❌ Insert error details:', JSON.stringify(insertError, null, 2))
+  console.error('❌ Data being inserted:', JSON.stringify({
+    user_id: userId,
+    filename: `${resume.filename.replace('.pdf', '')}_ATS_Optimized.pdf`,
+    file_path: resume.file_path,
+    file_size: resume.file_size,
+    upload_date: new Date().toISOString(),
+    is_active: true,
+    is_ats_optimized: true,
+    original_resume_id: resumeId
+  }, null, 2))
+  return NextResponse.json(
+    { error: `Failed to create optimized resume: ${insertError.message || insertError.details || JSON.stringify(insertError)}` },
+    { status: 500 }
+  )
+}
 
     console.log('✅ ATS optimization completed:', optimizedResume.id)
 
