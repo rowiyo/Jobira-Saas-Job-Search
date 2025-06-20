@@ -1,3 +1,5 @@
+import { JoobleService } from '@/lib/jooble-service'
+
 export interface JobResult {
   jobBoard: string
   jobTitle: string
@@ -114,7 +116,49 @@ async function scrapeAdzunaJobs(keywords: string[], location: string): Promise<J
   }
 }
 
-// Scrape RemoteOK (API-like endpoint)
+// Scrape Jooble Jobs
+async function scrapeJoobleJobs(keywords: string[], location?: string): Promise<JobResult[]> {
+  console.log('🔍 Searching Jooble for:', { keywords, location })
+  
+  try {
+    const joobleApiKey = process.env.JOOBLE_API_KEY
+    if (!joobleApiKey) {
+      console.warn('⚠️ JOOBLE_API_KEY not configured, skipping Jooble search')
+      return []
+    }
+
+    const jooble = new JoobleService(joobleApiKey)
+    
+    // Join keywords for search
+    const searchQuery = keywords.join(' ')
+    
+    const response = await jooble.searchJobs({
+      keywords: searchQuery,
+      location: location || '',
+      resultsOnPage: '50', // Get more results
+    })
+
+    console.log(`✅ Jooble returned ${response.jobs.length} jobs`)
+
+    // Convert Jooble jobs to your JobResult format
+    return response.jobs.map(job => ({
+      jobBoard: 'Jooble',
+      jobTitle: job.title,
+      company: job.company,
+      location: job.location,
+      salary: job.salary || undefined,
+      jobUrl: job.link,
+      description: job.snippet || '',
+      postedDate: job.updated,
+      relevanceScore: 0 // You can add scoring logic here
+    }))
+  } catch (error) {
+    console.error('❌ Jooble search error:', error)
+    return []
+  }
+}
+
+// Scrape RemoteOK Jobs
 async function scrapeRemoteOKJobs(keywords: string[]): Promise<JobResult[]> {
   try {
     console.log('🌐 Fetching from RemoteOK...')
@@ -178,10 +222,11 @@ export async function searchGlassdoor(keywords: string[], location: string): Pro
   
   try {
     // Try multiple sources (RemoteOK works great!)
-    const [remoteJobs, adzunaJobs, angelJobs] = await Promise.allSettled([
+    const [remoteJobs, adzunaJobs, angelJobs, joobleJobs] = await Promise.allSettled([
       scrapeRemoteOKJobs(keywords),
       scrapeAdzunaJobs(keywords, location),
-      scrapeAngelListJobs(keywords)
+      scrapeAngelListJobs(keywords),
+      scrapeJoobleJobs(keywords, location)
     ])
     
     // Add RemoteOK jobs (these work great!)
@@ -191,6 +236,12 @@ export async function searchGlassdoor(keywords: string[], location: string): Pro
     } else {
       console.error('❌ RemoteOK scraping failed:', remoteJobs.reason)
     }
+    
+    // Add Jooble jobs
+    if (joobleJobs.status === 'fulfilled') {
+      console.log(`✅ Added ${joobleJobs.value.length} Jooble jobs`)
+      allJobs.push(...joobleJobs.value)
+    } // <- THIS WAS MISSING!
     
     // Add Adzuna jobs
     if (adzunaJobs.status === 'fulfilled') {
