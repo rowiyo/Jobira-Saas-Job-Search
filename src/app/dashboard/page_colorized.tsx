@@ -30,6 +30,11 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview')
   const [selectedResumes, setSelectedResumes] = useState<Set<string>>(new Set())
   const [showBulkDelete, setShowBulkDelete] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   const handleBulkDelete = async () => {
     if (selectedResumes.size === 0) return
@@ -530,10 +535,13 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full blur-xl opacity-50 animate-pulse"></div>
+            <div className="relative animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mx-auto"></div>
+          </div>
+          <p className="mt-4 text-white text-lg">Loading your dashboard...</p>
         </div>
       </div>
     )
@@ -544,19 +552,42 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white">
+      {/* Animated gradient background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-blue-600/20 via-cyan-600/20 to-blue-600/20" />
+      
+      {/* Animated particles */}
+      {mounted && (
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          {[...Array(30)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute bg-white rounded-full opacity-10"
+              style={{
+                width: Math.random() * 3 + 'px',
+                height: Math.random() * 3 + 'px',
+                top: Math.random() * 100 + '%',
+                left: Math.random() * 100 + '%',
+                animation: `float ${Math.random() * 10 + 20}s linear infinite`,
+                animationDelay: Math.random() * 20 + 's'
+              }}
+            />
+          ))}
+        </div>
+      )}
+      
       {searchProgress > 0 && (
         <div className="fixed top-0 left-0 right-0 z-50">
-          <div className="h-1 bg-gray-200">
+          <div className="h-1 bg-slate-800">
             <div 
-              className="h-full bg-blue-600 transition-all duration-500 ease-out"
+              className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-500 ease-out shadow-lg shadow-blue-500/50"
               style={{ width: `${searchProgress}%` }}
             />
           </div>
         </div>
       )}
       
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="relative bg-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <Link href="/" className="hover:opacity-80 transition-opacity">
@@ -568,7 +599,7 @@ export default function Dashboard() {
             </Link>
             <div className="flex items-center space-x-4">
               {activeResume && (
-                <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg text-sm">
+                <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full text-sm border border-blue-200">
                   <FileText className="h-4 w-4 text-blue-600" />
                   <span className="text-gray-600">Active:</span>
                   <span className="font-medium text-gray-900 max-w-[150px] truncate">
@@ -578,17 +609,17 @@ export default function Dashboard() {
               )}
               
               <div className="hidden md:flex items-center gap-4">
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-                  <TrendingUp className="h-4 w-4 text-gray-700" />
+                <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full border border-blue-200">
+                  <TrendingUp className="h-4 w-4 text-blue-600" />
                   <span className="text-sm">
-                    <span className="font-bold text-gray-900">{todayStats.jobsFound}</span>
+                    <span className="font-bold text-blue-700">{todayStats.jobsFound}</span>
                     <span className="text-gray-600 ml-1">jobs today</span>
                   </span>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-                  <Activity className="h-4 w-4 text-gray-700" />
+                <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-full border border-purple-200">
+                  <Activity className="h-4 w-4 text-purple-600" />
                   <span className="text-sm">
-                    <span className="font-bold text-gray-900">{todayStats.searchesRun}</span>
+                    <span className="font-bold text-purple-700">{todayStats.searchesRun}</span>
                     <span className="text-gray-600 ml-1">searches</span>
                   </span>
                 </div>
@@ -600,32 +631,35 @@ export default function Dashboard() {
                     setShowNotifications(!showNotifications)
                     if (!showNotifications) markNotificationsAsRead()
                   }}
-                  className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
+                  className="relative p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
                 >
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full"></span>
+                    <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full animate-pulse"></span>
                   )}
                 </button>
                 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50">
-                    <div className="p-4 border-b border-gray-100">
-                      <h3 className="font-semibold text-gray-900">Notifications</h3>
+                  <div className="absolute right-0 mt-2 w-80 bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-blue-500/20 z-50">
+                    <div className="p-4 border-b border-blue-500/20">
+                      <h3 className="font-semibold text-white flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-blue-400" />
+                        Notifications
+                      </h3>
                     </div>
                     <div className="max-h-96 overflow-y-auto">
                       {notifications.length === 0 ? (
-                        <p className="p-6 text-sm text-gray-500 text-center">No notifications yet</p>
+                        <p className="p-6 text-sm text-gray-400 text-center">No notifications yet</p>
                       ) : (
-                        <div className="divide-y divide-gray-100">
+                        <div className="divide-y divide-blue-500/10">
                           {notifications.slice(0, 10).map((notification) => (
-                            <div key={notification.id} className="p-4 hover:bg-gray-50 transition-colors">
+                            <div key={notification.id} className="p-4 hover:bg-blue-500/10 transition-colors">
                               <div className="flex items-start gap-3">
                                 <div className={`mt-1 h-2 w-2 rounded-full ${
-                                  notification.read ? 'bg-gray-300' : 'bg-blue-600'
-                                }`} />
+                                  notification.read ? 'bg-gray-500' : 'bg-gradient-to-r from-blue-400 to-cyan-400'
+                                } ${!notification.read && 'animate-pulse'}`} />
                                 <div className="flex-1">
-                                  <p className="text-sm text-gray-900">{notification.message}</p>
+                                  <p className="text-sm text-gray-100">{notification.message}</p>
                                   <p className="text-xs text-gray-500 mt-1">
                                     {new Date(notification.timestamp).toLocaleTimeString()}
                                   </p>
@@ -640,8 +674,8 @@ export default function Dashboard() {
                 )}
               </div>
               
-              <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
-                <User className="h-5 w-5 text-gray-600" />
+              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-xl">
+                <div className="h-8 w-8 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full" />
                 <span className="text-gray-700 text-sm font-medium">
                   {user.user_metadata?.first_name || user.email?.split('@')[0]}
                 </span>
@@ -650,7 +684,7 @@ export default function Dashboard() {
               <Button 
                 onClick={handleLogout} 
                 variant="destructive"
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-red-500 hover:bg-red-600 text-white border-0"
               >
                 Logout
               </Button>
@@ -659,14 +693,14 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <nav className="flex items-center gap-2 text-sm">
           {getBreadcrumbs().map((crumb, index) => (
             <React.Fragment key={crumb.href}>
-              {index > 0 && <ChevronRight className="h-4 w-4 text-gray-400" />}
+              {index > 0 && <ChevronRight className="h-4 w-4 text-blue-400/50" />}
               <Link 
                 href={crumb.href} 
-                className="flex items-center gap-1 text-gray-600 hover:text-gray-900 transition-colors"
+                className="flex items-center gap-1 text-blue-300 hover:text-white transition-colors"
               >
                 <crumb.icon className="h-3.5 w-3.5" />
                 <span>{crumb.name}</span>
@@ -676,41 +710,41 @@ export default function Dashboard() {
         </nav>
       </div>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="relative max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="bg-white border border-gray-200 p-1 rounded-lg grid w-full grid-cols-5">
+            <TabsList className="bg-slate-800/50 backdrop-blur-xl border border-blue-500/20 p-1 rounded-2xl grid w-full grid-cols-5">
               <TabsTrigger 
                 value="overview" 
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white rounded-xl transition-all"
               >
                 <User className="h-4 w-4 mr-2" />
                 Overview
               </TabsTrigger>
               <TabsTrigger 
                 value="upload"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white rounded-xl transition-all"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Upload
               </TabsTrigger>
               <TabsTrigger 
                 value="resumes"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white rounded-xl transition-all"
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Resumes ({resumes.length})
               </TabsTrigger>
               <TabsTrigger 
                 value="search"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white rounded-xl transition-all"
               >
                 <Search className="h-4 w-4 mr-2" />
                 Search
               </TabsTrigger>
               <TabsTrigger 
                 value="favorites"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white rounded-xl transition-all"
               >
                 <Star className="h-4 w-4 mr-2" />
                 Favorites
@@ -719,31 +753,31 @@ export default function Dashboard() {
 
             <TabsContent value="overview" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card className="bg-white border-gray-200 hover:shadow-lg transition-shadow">
+                <Card className="bg-slate-800/80 backdrop-blur-sm border-blue-500/20 hover:border-blue-500/40 transition-all hover:shadow-xl hover:shadow-blue-500/10">
                   <CardHeader>
-                    <CardTitle className="text-gray-900 flex items-center gap-2">
-                      <Zap className="h-5 w-5 text-blue-600" />
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-yellow-400" />
                       Quick Actions
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <Button 
                       onClick={() => setActiveTab('upload')}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0 shadow-lg shadow-blue-500/25"
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Resume
                     </Button>
                     <Button 
                       onClick={() => setActiveTab('search')}
-                      className="w-full bg-gray-600 hover:bg-gray-700 text-white"
+                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 shadow-lg shadow-purple-500/25"
                     >
                       <Search className="h-4 w-4 mr-2" />
                       Manual Search
                     </Button>
                     <Button 
                       onClick={() => setActiveTab('resumes')}
-                      className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
+                      className="w-full bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
                       disabled={resumes.length === 0}
                     >
                       <Briefcase className="h-4 w-4 mr-2" />
@@ -752,64 +786,64 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white border-gray-200 hover:shadow-lg transition-shadow">
+                <Card className="bg-slate-800/80 backdrop-blur-sm border-blue-500/20 hover:border-blue-500/40 transition-all hover:shadow-xl hover:shadow-blue-500/10">
                   <CardHeader>
-                    <CardTitle className="text-gray-900 flex items-center gap-2">
-                      <BarChart className="h-5 w-5 text-blue-600" />
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <BarChart className="h-5 w-5 text-cyan-400" />
                       Your Stats
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600">Resumes:</span>
-                      <span className="font-bold text-gray-900 text-lg">{resumes.length}</span>
+                    <div className="flex justify-between items-center p-3 bg-slate-900/50 rounded-lg">
+                      <span className="text-gray-300">Resumes:</span>
+                      <span className="font-bold text-white text-lg">{resumes.length}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600">AI Parsed:</span>
-                      <span className="font-bold text-green-600 text-lg">
+                    <div className="flex justify-between items-center p-3 bg-slate-900/50 rounded-lg">
+                      <span className="text-gray-300">AI Parsed:</span>
+                      <span className="font-bold text-green-400 text-lg">
                         {resumes.filter(r => r.extracted_keywords).length}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600">ATS Optimized:</span>
-                      <span className="font-bold text-blue-600 text-lg">
+                    <div className="flex justify-between items-center p-3 bg-slate-900/50 rounded-lg">
+                      <span className="text-gray-300">ATS Optimized:</span>
+                      <span className="font-bold text-purple-400 text-lg">
                         {resumes.filter(r => r.is_ats_optimized).length}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600">Jobs Found:</span>
-                      <span className="font-bold text-gray-900 text-lg">{todayStats.jobsFound}</span>
+                    <div className="flex justify-between items-center p-3 bg-slate-900/50 rounded-lg">
+                      <span className="text-gray-300">Jobs Found:</span>
+                      <span className="font-bold text-cyan-400 text-lg">{todayStats.jobsFound}</span>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white border-gray-200 hover:shadow-lg transition-shadow">
+                <Card className="bg-slate-800/80 backdrop-blur-sm border-blue-500/20 hover:border-blue-500/40 transition-all hover:shadow-xl hover:shadow-blue-500/10">
                   <CardHeader>
-                    <CardTitle className="text-gray-900 flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-blue-600" />
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-green-400" />
                       Recent Activity
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {resumes.length === 0 ? (
                       <div className="text-center py-8">
-                        <Upload className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                        <p className="text-gray-500">
+                        <Upload className="h-12 w-12 text-gray-500 mx-auto mb-3" />
+                        <p className="text-gray-400">
                           No activity yet. Upload a resume to get started!
                         </p>
                       </div>
                     ) : (
                       <div className="space-y-3">
                         {resumes.slice(0, 3).map((resume) => (
-                          <div key={resume.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                            <FileText className="h-5 w-5 text-blue-600" />
-                            <span className="truncate flex-1 text-gray-700">{resume.filename}</span>
+                          <div key={resume.id} className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-lg hover:bg-slate-900/70 transition-colors">
+                            <FileText className="h-5 w-5 text-blue-400" />
+                            <span className="truncate flex-1 text-gray-200">{resume.filename}</span>
                             <div className="flex gap-1">
                               {resume.extracted_keywords && (
-                                <span className="h-2 w-2 bg-green-500 rounded-full" title="AI Parsed" />
+                                <span className="h-2 w-2 bg-green-400 rounded-full" title="AI Parsed" />
                               )}
                               {resume.is_ats_optimized && (
-                                <span className="h-2 w-2 bg-blue-600 rounded-full" title="ATS Optimized" />
+                                <span className="h-2 w-2 bg-purple-400 rounded-full" title="ATS Optimized" />
                               )}
                             </div>
                           </div>
@@ -822,21 +856,21 @@ export default function Dashboard() {
 
               {/* Stats Overview */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-                  <div className="text-3xl font-bold text-gray-900">{resumes.length}</div>
-                  <div className="text-sm text-gray-600 mt-1">Total Resumes</div>
+                <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 border border-blue-500/30">
+                  <div className="text-3xl font-bold text-cyan-300">{resumes.length}</div>
+                  <div className="text-sm text-gray-300 mt-1">Total Resumes</div>
                 </div>
-                <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-                  <div className="text-3xl font-bold text-green-600">{todayStats.jobsFound}</div>
-                  <div className="text-sm text-gray-600 mt-1">Jobs Found Today</div>
+                <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 border border-green-500/30">
+                  <div className="text-3xl font-bold text-green-300">{todayStats.jobsFound}</div>
+                  <div className="text-sm text-gray-300 mt-1">Jobs Found Today</div>
                 </div>
-                <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-                  <div className="text-3xl font-bold text-blue-600">{todayStats.searchesRun}</div>
-                  <div className="text-sm text-gray-600 mt-1">Searches Today</div>
+                <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/30">
+                  <div className="text-3xl font-bold text-purple-300">{todayStats.searchesRun}</div>
+                  <div className="text-sm text-gray-300 mt-1">Searches Today</div>
                 </div>
-                <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-                  <div className="text-3xl font-bold text-gray-900">10+</div>
-                  <div className="text-sm text-gray-600 mt-1">Job Boards</div>
+                <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 border border-yellow-500/30">
+                  <div className="text-3xl font-bold text-yellow-300">10+</div>
+                  <div className="text-sm text-gray-300 mt-1">Job Boards</div>
                 </div>
               </div>
             </TabsContent>
@@ -846,11 +880,11 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="resumes" className="space-y-6">
-              <Card className="bg-white border-gray-200">
+              <Card className="bg-slate-800/80 backdrop-blur-sm border-blue-500/20">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-gray-900 flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-blue-600" />
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-400" />
                       My Resumes
                     </CardTitle>
                     {resumes.length > 0 && (
@@ -858,7 +892,7 @@ export default function Dashboard() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                          className="border-blue-500/30 text-blue-300 hover:bg-blue-500/20"
                           onClick={() => {
                             if (selectedResumes.size === resumes.length) {
                               setSelectedResumes(new Set())
@@ -872,7 +906,7 @@ export default function Dashboard() {
                         {selectedResumes.size > 0 && (
                           <Button
                             size="sm"
-                            className="bg-red-600 hover:bg-red-700 text-white"
+                            className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
                             onClick={() => setShowBulkDelete(true)}
                           >
                             Delete Selected ({selectedResumes.size})
@@ -885,12 +919,15 @@ export default function Dashboard() {
                 <CardContent>
                   {resumes.length === 0 ? (
                     <div className="text-center py-12">
-                      <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-xl font-medium text-gray-900 mb-2">No resumes uploaded</h3>
-                      <p className="text-gray-600 mb-6">Upload your first resume to unlock AI-powered job searching</p>
+                      <div className="relative inline-block">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full blur-2xl opacity-30 animate-pulse"></div>
+                        <FileText className="relative h-16 w-16 text-gray-500 mx-auto mb-4" />
+                      </div>
+                      <h3 className="text-xl font-medium text-white mb-2">No resumes uploaded</h3>
+                      <p className="text-gray-400 mb-6">Upload your first resume to unlock AI-powered job searching</p>
                       <Button 
                         onClick={() => setActiveTab('upload')}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
                       >
                         <Upload className="h-4 w-4 mr-2" />
                         Upload Resume
@@ -899,7 +936,7 @@ export default function Dashboard() {
                   ) : (
                     <div className="space-y-4">
                       {resumes.map((resume) => (
-                        <div key={resume.id} className="bg-white rounded-lg p-6 border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all">
+                        <div key={resume.id} className="group relative bg-slate-900/50 backdrop-blur-sm rounded-xl p-6 border border-blue-500/20 hover:border-blue-500/40 transition-all hover:shadow-xl hover:shadow-blue-500/10">
                           <div className="flex items-start justify-between">
                             <div className="flex items-start gap-4">
                               <input
@@ -914,14 +951,15 @@ export default function Dashboard() {
                                   }
                                   setSelectedResumes(newSelected)
                                 }}
-                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1"
+                                className="h-5 w-5 rounded bg-slate-700 border-blue-500/50 text-blue-500 focus:ring-blue-500/50 mt-1"
                               />
-                              <div className="bg-blue-100 rounded-lg p-3">
-                                <FileText className="h-6 w-6 text-blue-600" />
+                              <div className="relative">
+                                <div className="absolute -inset-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg opacity-0 group-hover:opacity-20 blur-xl transition-opacity"></div>
+                                <FileText className="relative h-10 w-10 text-blue-400" />
                               </div>
                               <div className="flex-1">
-                                <h3 className="font-semibold text-gray-900 text-lg">{resume.filename}</h3>
-                                <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                                <h3 className="font-semibold text-white text-lg">{resume.filename}</h3>
+                                <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
                                   <span>Uploaded {new Date(resume.upload_date).toLocaleDateString()}</span>
                                   <span>•</span>
                                   <span>{Math.round(resume.file_size / 1024)} KB</span>
@@ -929,13 +967,13 @@ export default function Dashboard() {
                                 
                                 <div className="flex flex-wrap gap-2 mt-3">
                                   {resume.is_ats_optimized && (
-                                    <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
+                                    <span className="inline-flex items-center gap-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 px-3 py-1 rounded-full text-xs border border-purple-500/30">
                                       <Star className="h-3 w-3" />
                                       ATS Optimized
                                     </span>
                                   )}
                                   {resume.extracted_keywords && (
-                                    <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
+                                    <span className="inline-flex items-center gap-1 bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 px-3 py-1 rounded-full text-xs border border-green-500/30">
                                       <CheckCircle className="h-3 w-3" />
                                       AI Parsed
                                     </span>
@@ -945,13 +983,13 @@ export default function Dashboard() {
                                 {searchResults[resume.id] && (
                                   <div className={`mt-4 p-4 rounded-lg ${
                                     searchResults[resume.id].status === 'success' 
-                                      ? 'bg-green-50 border border-green-200' 
-                                      : 'bg-red-50 border border-red-200'
+                                      ? 'bg-green-500/20 border border-green-500/30' 
+                                      : 'bg-red-500/20 border border-red-500/30'
                                   }`}>
                                     <p className={`text-sm font-medium ${
                                       searchResults[resume.id].status === 'success'
-                                        ? 'text-green-800'
-                                        : 'text-red-800'
+                                        ? 'text-green-300'
+                                        : 'text-red-300'
                                     }`}>
                                       {searchResults[resume.id].status === 'success' ? '✅' : '❌'} {searchResults[resume.id].message}
                                     </p>
@@ -959,7 +997,7 @@ export default function Dashboard() {
                                       <Button
                                         size="sm"
                                         variant="link"
-                                        className="mt-2 p-0 h-auto text-green-700 hover:text-green-900"
+                                        className="mt-2 p-0 h-auto text-green-400 hover:text-green-300"
                                         onClick={() => router.push(`/dashboard/results/${searchResults[resume.id].searchId}`)}
                                       >
                                         View job results →
@@ -969,15 +1007,15 @@ export default function Dashboard() {
                                 )}
                                 
                                 {resume.total_jobs_found > 0 && !searchResults[resume.id] && (
-                                  <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                    <p className="text-sm font-medium text-blue-800">
+                                  <div className="mt-4 p-4 bg-blue-500/20 rounded-lg border border-blue-500/30">
+                                    <p className="text-sm font-medium text-blue-300">
                                       📊 Last Search Results
                                     </p>
-                                    <p className="text-sm text-blue-700 mt-1">
+                                    <p className="text-sm text-blue-100 mt-1">
                                       Found {resume.total_jobs_found} jobs across {resume.job_boards_searched} job boards
                                     </p>
                                     {resume.last_search_date && (
-                                      <p className="text-sm text-blue-600 mt-1">
+                                      <p className="text-sm text-blue-200/70 mt-1">
                                         {new Date(resume.last_search_date).toLocaleDateString()}
                                       </p>
                                     )}
@@ -987,18 +1025,18 @@ export default function Dashboard() {
                                 {resume.extracted_keywords && (
                                   <div className="mt-4 space-y-2">
                                     {resume.extracted_keywords.currentJobTitle && (
-                                      <p className="text-sm text-gray-700">
+                                      <p className="text-sm text-gray-300">
                                         <span className="text-gray-500">Role:</span> {resume.extracted_keywords.currentJobTitle}
                                       </p>
                                     )}
                                     {resume.extracted_keywords.searchKeywords && (
-                                      <p className="text-sm text-gray-700">
+                                      <p className="text-sm text-gray-300">
                                         <span className="text-gray-500">Skills:</span> {resume.extracted_keywords.searchKeywords.slice(0, 5).join(', ')}
                                         {resume.extracted_keywords.searchKeywords.length > 5 && ` +${resume.extracted_keywords.searchKeywords.length - 5} more`}
                                       </p>
                                     )}
                                     {resume.extracted_keywords.experienceLevel && (
-                                      <p className="text-sm text-gray-700">
+                                      <p className="text-sm text-gray-300">
                                         <span className="text-gray-500">Level:</span> {resume.extracted_keywords.experienceLevel}
                                       </p>
                                     )}
@@ -1010,7 +1048,7 @@ export default function Dashboard() {
                               {resume.total_jobs_found > 0 && resume.last_search_id && (
                                 <Button 
                                   size="sm" 
-                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/25"
                                   onClick={() => router.push(`/dashboard/results/${resume.last_search_id}`)}
                                 >
                                   <BarChart className="h-4 w-4 mr-1" />
@@ -1019,7 +1057,7 @@ export default function Dashboard() {
                               )}
                               <Button 
                                 size="sm" 
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/25"
                                 onClick={() => handleJobSearch(resume.id)}
                                 disabled={!resume.extracted_keywords || searchingJobs === resume.id}
                               >
@@ -1038,7 +1076,7 @@ export default function Dashboard() {
                               <Button 
                                 size="sm" 
                                 variant={resume.is_ats_optimized ? "default" : "secondary"}
-                                className={resume.is_ats_optimized ? "bg-green-500 hover:bg-green-600 text-white" : "bg-gray-600 hover:bg-gray-700 text-white"}
+                                className={resume.is_ats_optimized ? "bg-green-500 hover:bg-green-600 text-white" : ""}
                                 onClick={() => {
                                   if (resume.is_ats_optimized) {
                                     router.push(`/dashboard/ats-results/${resume.id}`)
@@ -1069,13 +1107,12 @@ export default function Dashboard() {
                               </Button>
                               <Button 
                                 size="sm" 
-                                variant="outline"
-                                className="border-red-300 text-red-600 hover:bg-red-50"
+                                className="bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30"
                                 onClick={() => setResumeToDelete({id: resume.id, filename: resume.filename})}
                                 disabled={deletingResume === resume.id}
                               >
                                 {deletingResume === resume.id ? (
-                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-600 border-t-transparent"></div>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-300 border-t-transparent"></div>
                                 ) : (
                                   <Trash2 className="h-4 w-4" />
                                 )}
@@ -1091,13 +1128,13 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="search">
-              <Card className="bg-white border-gray-200">
+              <Card className="bg-slate-800/80 backdrop-blur-sm border-blue-500/20">
                 <CardHeader>
-                  <CardTitle className="text-gray-900 flex items-center gap-2">
-                    <Search className="h-5 w-5 text-blue-600" />
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Search className="h-5 w-5 text-cyan-400" />
                     Manual Job Search
                   </CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardDescription className="text-gray-400">
                     Search for jobs across all major job boards without uploading a resume
                   </CardDescription>
                 </CardHeader>
@@ -1111,13 +1148,13 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="favorites">
-              <Card className="bg-white border-gray-200">
+              <Card className="bg-slate-800/80 backdrop-blur-sm border-blue-500/20">
                 <CardHeader>
-                  <CardTitle className="text-gray-900 flex items-center gap-2">
-                    <Star className="h-5 w-5 text-yellow-500" />
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Star className="h-5 w-5 text-yellow-400" />
                     My Favorite Jobs
                   </CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardDescription className="text-gray-400">
                     Jobs you've starred across all your searches
                   </CardDescription>
                 </CardHeader>
@@ -1131,18 +1168,18 @@ export default function Dashboard() {
       </main>
 
       <AlertDialog open={!!resumeToDelete} onOpenChange={() => setResumeToDelete(null)}>
-        <AlertDialogContent className="bg-white">
+        <AlertDialogContent className="bg-slate-800 border-red-500/20">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Resume</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-white">Delete Resume</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300">
               Are you sure you want to delete "{resumeToDelete?.filename}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteResume}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
             >
               Delete
             </AlertDialogAction>
@@ -1158,24 +1195,31 @@ export default function Dashboard() {
       )}
 
       <AlertDialog open={showBulkDelete} onOpenChange={setShowBulkDelete}>
-        <AlertDialogContent className="bg-white">
+        <AlertDialogContent className="bg-slate-800 border-red-500/20">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {selectedResumes.size} Resumes</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-white">Delete {selectedResumes.size} Resumes</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300">
               Are you sure you want to delete {selectedResumes.size} selected resumes? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleBulkDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
             >
               Delete All Selected
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <style jsx>{`
+        @keyframes float {
+          0% { transform: translateY(0px); }
+          100% { transform: translateY(-100vh); }
+        }
+      `}</style>
     </div>
   )
 }

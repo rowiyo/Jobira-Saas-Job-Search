@@ -2,6 +2,7 @@
 import { OpenAI } from 'openai';
 import { supabase } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
+import { jsPDF } from 'jspdf'; 
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -34,6 +35,7 @@ async function extractResumeText(resumeId: string): Promise<string> {
   // In production, you'd implement PDF parsing here
   throw new Error('Resume text not available. Please ensure the resume has been parsed.');
 }
+
 
 // Helper function to save optimized resume
 async function saveOptimizedResume(

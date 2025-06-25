@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { FileText, Search, User, Trash2, ChevronRight, Home, BarChart, Bell, Star, Upload, Sparkles, Zap, Target, Shield, TrendingUp, Briefcase, CheckCircle, Activity, Clock } from 'lucide-react'
+import { FileText, Search, User, Trash2, ChevronRight, Home, BarChart, Bell, Star } from 'lucide-react'
 import { ManualSearchForm, ManualSearchParams } from '@/components/search/ManualSearchForm'
 
 export default function Dashboard() {
@@ -30,51 +30,50 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview')
   const [selectedResumes, setSelectedResumes] = useState<Set<string>>(new Set())
   const [showBulkDelete, setShowBulkDelete] = useState(false)
-  
   const handleBulkDelete = async () => {
-    if (selectedResumes.size === 0) return
-    
-    try {
-      for (const resumeId of selectedResumes) {
-        const resume = resumes.find(r => r.id === resumeId)
-        if (resume?.file_path) {
-          await supabase.storage
-            .from('resumes')
-            .remove([resume.file_path])
-        }
-        
-        await supabase
-          .from('resumes')
-          .update({ is_active: false })
-          .eq('id', resumeId)
-      }
-      
-      setNotifications(prev => [{
-        id: Date.now().toString(),
-        type: 'search_complete',
-        message: `Successfully deleted ${selectedResumes.size} resumes`,
-        read: false,
-        timestamp: new Date()
-      }, ...prev])
-      
-      if (user) {
-        await loadResumes(user.id)
-      }
-      
-      setSelectedResumes(new Set())
-      setShowBulkDelete(false)
-    } catch (error: any) {
-      console.error('Bulk delete error:', error)
-      setNotifications(prev => [{
-        id: Date.now().toString(),
-        type: 'error',
-        message: `Failed to delete resumes: ${error.message}`,
-        read: false,
-        timestamp: new Date()
-      }, ...prev])
-    }
-  }
+  if (selectedResumes.size === 0) return
   
+  try {
+    // Delete all selected resumes
+    for (const resumeId of selectedResumes) {
+      const resume = resumes.find(r => r.id === resumeId)
+      if (resume?.file_path) {
+        await supabase.storage
+          .from('resumes')
+          .remove([resume.file_path])
+      }
+      
+      await supabase
+        .from('resumes')
+        .update({ is_active: false })
+        .eq('id', resumeId)
+    }
+    
+    setNotifications(prev => [{
+      id: Date.now().toString(),
+      type: 'search_complete',
+      message: `Successfully deleted ${selectedResumes.size} resumes`,
+      read: false,
+      timestamp: new Date()
+    }, ...prev])
+    
+    if (user) {
+      await loadResumes(user.id)
+    }
+    
+    setSelectedResumes(new Set())
+    setShowBulkDelete(false)
+  } catch (error: any) {
+    console.error('Bulk delete error:', error)
+    setNotifications(prev => [{
+      id: Date.now().toString(),
+      type: 'error',
+      message: `Failed to delete resumes: ${error.message}`,
+      read: false,
+      timestamp: new Date()
+    }, ...prev])
+  }
+}
   const [searchingJobs, setSearchingJobs] = useState<string | null>(null)
   const [deletingResume, setDeletingResume] = useState<string | null>(null)
   const [resumeToDelete, setResumeToDelete] = useState<{id: string, filename: string} | null>(null)
@@ -323,6 +322,7 @@ export default function Dashboard() {
       const result = await response.json()
       console.log('ATS optimization completed:', result)
       
+      // Show success notification
       setNotifications(prev => [{
         id: Date.now().toString(),
         type: 'search_complete',
@@ -331,11 +331,13 @@ export default function Dashboard() {
         timestamp: new Date()
       }, ...prev])
       
+      // Refresh resumes list to show the new optimized version
       if (user) {
         await loadResumes(user.id)
       }
       
-      router.push(`/dashboard/ats-results/${result.optimizedResumeId}`)
+      // Navigate to ATS optimized page
+     router.push(`/dashboard/ats-results/${result.optimizedResumeId}`)
       
     } catch (error: any) {
       console.error('ATS optimization error:', error)
@@ -530,10 +532,10 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2">Loading dashboard...</p>
         </div>
       </div>
     )
@@ -549,14 +551,14 @@ export default function Dashboard() {
         <div className="fixed top-0 left-0 right-0 z-50">
           <div className="h-1 bg-gray-200">
             <div 
-              className="h-full bg-blue-600 transition-all duration-500 ease-out"
+              className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500 ease-out"
               style={{ width: `${searchProgress}%` }}
             />
           </div>
         </div>
       )}
       
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <Link href="/" className="hover:opacity-80 transition-opacity">
@@ -568,29 +570,21 @@ export default function Dashboard() {
             </Link>
             <div className="flex items-center space-x-4">
               {activeResume && (
-                <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg text-sm">
-                  <FileText className="h-4 w-4 text-blue-600" />
-                  <span className="text-gray-600">Active:</span>
+                <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-lg text-sm">
+                  <FileText className="h-4 w-4 text-gray-600" />
+                  <span className="text-gray-700">Active:</span>
                   <span className="font-medium text-gray-900 max-w-[150px] truncate">
                     {activeResume.filename}
                   </span>
                 </div>
               )}
               
-              <div className="hidden md:flex items-center gap-4">
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-                  <TrendingUp className="h-4 w-4 text-gray-700" />
-                  <span className="text-sm">
-                    <span className="font-bold text-gray-900">{todayStats.jobsFound}</span>
-                    <span className="text-gray-600 ml-1">jobs today</span>
-                  </span>
+              <div className="hidden md:flex items-center gap-4 text-sm">
+                <div className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full">
+                  <span className="font-medium">{todayStats.jobsFound}</span> jobs found today
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-                  <Activity className="h-4 w-4 text-gray-700" />
-                  <span className="text-sm">
-                    <span className="font-bold text-gray-900">{todayStats.searchesRun}</span>
-                    <span className="text-gray-600 ml-1">searches</span>
-                  </span>
+                <div className="px-3 py-1 bg-purple-50 text-purple-700 rounded-full">
+                  <span className="font-medium">{todayStats.searchesRun}</span> searches today
                 </div>
               </div>
               
@@ -604,7 +598,7 @@ export default function Dashboard() {
                 >
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full"></span>
+                    <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
                   )}
                 </button>
                 
@@ -615,14 +609,14 @@ export default function Dashboard() {
                     </div>
                     <div className="max-h-96 overflow-y-auto">
                       {notifications.length === 0 ? (
-                        <p className="p-6 text-sm text-gray-500 text-center">No notifications yet</p>
+                        <p className="p-4 text-sm text-gray-500 text-center">No notifications yet</p>
                       ) : (
                         <div className="divide-y divide-gray-100">
                           {notifications.slice(0, 10).map((notification) => (
                             <div key={notification.id} className="p-4 hover:bg-gray-50 transition-colors">
                               <div className="flex items-start gap-3">
                                 <div className={`mt-1 h-2 w-2 rounded-full ${
-                                  notification.read ? 'bg-gray-300' : 'bg-blue-600'
+                                  notification.read ? 'bg-gray-300' : 'bg-blue-500'
                                 }`} />
                                 <div className="flex-1">
                                   <p className="text-sm text-gray-900">{notification.message}</p>
@@ -640,18 +634,10 @@ export default function Dashboard() {
                 )}
               </div>
               
-              <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
-                <User className="h-5 w-5 text-gray-600" />
-                <span className="text-gray-700 text-sm font-medium">
-                  {user.user_metadata?.first_name || user.email?.split('@')[0]}
-                </span>
-              </div>
-              
-              <Button 
-                onClick={handleLogout} 
-                variant="destructive"
-                className="bg-red-600 hover:bg-red-700 text-white"
-              >
+              <span className="text-gray-700">
+                Welcome, {user.user_metadata?.first_name || user.email}!
+              </span>
+              <Button onClick={handleLogout} variant="destructive">
                 Logout
               </Button>
             </div>
@@ -659,7 +645,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
         <nav className="flex items-center gap-2 text-sm">
           {getBreadcrumbs().map((crumb, index) => (
             <React.Fragment key={crumb.href}>
@@ -679,165 +665,120 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="bg-white border border-gray-200 p-1 rounded-lg grid w-full grid-cols-5">
-              <TabsTrigger 
-                value="overview" 
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
-              >
-                <User className="h-4 w-4 mr-2" />
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="overview" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
                 Overview
               </TabsTrigger>
-              <TabsTrigger 
-                value="upload"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload
+              <TabsTrigger value="upload" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Upload Resume
               </TabsTrigger>
-              <TabsTrigger 
-                value="resumes"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Resumes ({resumes.length})
+              <TabsTrigger value="resumes" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                My Resumes ({resumes.length})
               </TabsTrigger>
-              <TabsTrigger 
-                value="search"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
-              >
-                <Search className="h-4 w-4 mr-2" />
-                Search
+              <TabsTrigger value="search" className="flex items-center gap-2">
+                <Search className="h-4 w-4" />
+                Job Search
               </TabsTrigger>
-              <TabsTrigger 
-                value="favorites"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
-              >
-                <Star className="h-4 w-4 mr-2" />
+              <TabsTrigger value="favorites" className="flex items-center gap-2">
+                <Star className="h-4 w-4" />
                 Favorites
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card className="bg-white border-gray-200 hover:shadow-lg transition-shadow">
+                <Card>
                   <CardHeader>
-                    <CardTitle className="text-gray-900 flex items-center gap-2">
-                      <Zap className="h-5 w-5 text-blue-600" />
-                      Quick Actions
-                    </CardTitle>
+                    <CardTitle>Quick Actions</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <Button 
                       onClick={() => setActiveTab('upload')}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      className="w-full"
+                      variant="default"
                     >
-                      <Upload className="h-4 w-4 mr-2" />
                       Upload Resume
                     </Button>
                     <Button 
                       onClick={() => setActiveTab('search')}
-                      className="w-full bg-gray-600 hover:bg-gray-700 text-white"
+                      className="w-full"
+                      variant="secondary"
                     >
-                      <Search className="h-4 w-4 mr-2" />
-                      Manual Search
+                      Search Jobs Manually
                     </Button>
                     <Button 
                       onClick={() => setActiveTab('resumes')}
-                      className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
+                      className="w-full"
+                      variant="outline"
                       disabled={resumes.length === 0}
                     >
-                      <Briefcase className="h-4 w-4 mr-2" />
-                      Resume Search
+                      Resume-Based Search
                     </Button>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white border-gray-200 hover:shadow-lg transition-shadow">
+                <Card>
                   <CardHeader>
-                    <CardTitle className="text-gray-900 flex items-center gap-2">
-                      <BarChart className="h-5 w-5 text-blue-600" />
-                      Your Stats
-                    </CardTitle>
+                    <CardTitle>Your Stats</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600">Resumes:</span>
-                      <span className="font-bold text-gray-900 text-lg">{resumes.length}</span>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Resumes:</span>
+                      <span className="font-semibold">{resumes.length}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600">AI Parsed:</span>
-                      <span className="font-bold text-green-600 text-lg">
+                    <div className="flex justify-between">
+                      <span>AI Parsed:</span>
+                      <span className="font-semibold">
                         {resumes.filter(r => r.extracted_keywords).length}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600">ATS Optimized:</span>
-                      <span className="font-bold text-blue-600 text-lg">
+                    <div className="flex justify-between">
+                      <span>ATS Optimized:</span>
+                      <span className="font-semibold">
                         {resumes.filter(r => r.is_ats_optimized).length}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600">Jobs Found:</span>
-                      <span className="font-bold text-gray-900 text-lg">{todayStats.jobsFound}</span>
+                    <div className="flex justify-between">
+                      <span>Total Searches:</span>
+                      <span className="font-semibold">{todayStats.searchesRun}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Jobs Found:</span>
+                      <span className="font-semibold">{todayStats.jobsFound}</span>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white border-gray-200 hover:shadow-lg transition-shadow">
+                <Card>
                   <CardHeader>
-                    <CardTitle className="text-gray-900 flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-blue-600" />
-                      Recent Activity
-                    </CardTitle>
+                    <CardTitle>Recent Activity</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {resumes.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Upload className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                        <p className="text-gray-500">
-                          No activity yet. Upload a resume to get started!
-                        </p>
-                      </div>
+                      <p className="text-gray-500 text-center py-4">
+                        No activity yet. Upload a resume to get started!
+                      </p>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {resumes.slice(0, 3).map((resume) => (
-                          <div key={resume.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                            <FileText className="h-5 w-5 text-blue-600" />
-                            <span className="truncate flex-1 text-gray-700">{resume.filename}</span>
-                            <div className="flex gap-1">
-                              {resume.extracted_keywords && (
-                                <span className="h-2 w-2 bg-green-500 rounded-full" title="AI Parsed" />
-                              )}
-                              {resume.is_ats_optimized && (
-                                <span className="h-2 w-2 bg-blue-600 rounded-full" title="ATS Optimized" />
-                              )}
-                            </div>
+                          <div key={resume.id} className="flex items-center gap-2 text-sm">
+                            <FileText className="h-4 w-4 text-blue-600" />
+                            <span className="truncate">{resume.filename}</span>
+                            {resume.extracted_keywords && (
+                              <span className="text-green-600">✓</span>
+                            )}
+                            {resume.is_ats_optimized && (
+                              <span className="text-purple-600">★</span>
+                            )}
                           </div>
                         ))}
                       </div>
                     )}
                   </CardContent>
                 </Card>
-              </div>
-
-              {/* Stats Overview */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-                  <div className="text-3xl font-bold text-gray-900">{resumes.length}</div>
-                  <div className="text-sm text-gray-600 mt-1">Total Resumes</div>
-                </div>
-                <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-                  <div className="text-3xl font-bold text-green-600">{todayStats.jobsFound}</div>
-                  <div className="text-sm text-gray-600 mt-1">Jobs Found Today</div>
-                </div>
-                <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-                  <div className="text-3xl font-bold text-blue-600">{todayStats.searchesRun}</div>
-                  <div className="text-sm text-gray-600 mt-1">Searches Today</div>
-                </div>
-                <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-                  <div className="text-3xl font-bold text-gray-900">10+</div>
-                  <div className="text-sm text-gray-600 mt-1">Job Boards</div>
-                </div>
               </div>
             </TabsContent>
 
@@ -846,104 +787,87 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="resumes" className="space-y-6">
-              <Card className="bg-white border-gray-200">
+              <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-gray-900 flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-blue-600" />
-                      My Resumes
-                    </CardTitle>
-                    {resumes.length > 0 && (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                          onClick={() => {
-                            if (selectedResumes.size === resumes.length) {
-                              setSelectedResumes(new Set())
-                            } else {
-                              setSelectedResumes(new Set(resumes.map(r => r.id)))
-                            }
-                          }}
-                        >
-                          {selectedResumes.size === resumes.length ? 'Deselect All' : 'Select All'}
-                        </Button>
-                        {selectedResumes.size > 0 && (
-                          <Button
-                            size="sm"
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                            onClick={() => setShowBulkDelete(true)}
-                          >
-                            Delete Selected ({selectedResumes.size})
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </CardHeader>
+  <div className="flex items-center justify-between">
+    <CardTitle>My Resumes</CardTitle>
+    {resumes.length > 0 && (
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            if (selectedResumes.size === resumes.length) {
+              setSelectedResumes(new Set())
+            } else {
+              setSelectedResumes(new Set(resumes.map(r => r.id)))
+            }
+          }}
+        >
+          {selectedResumes.size === resumes.length ? 'Deselect All' : 'Select All'}
+        </Button>
+        {selectedResumes.size > 0 && (
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => setShowBulkDelete(true)}
+          >
+            Delete Selected ({selectedResumes.size})
+          </Button>
+        )}
+      </div>
+    )}
+  </div>
+</CardHeader>
                 <CardContent>
                   {resumes.length === 0 ? (
-                    <div className="text-center py-12">
-                      <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-xl font-medium text-gray-900 mb-2">No resumes uploaded</h3>
-                      <p className="text-gray-600 mb-6">Upload your first resume to unlock AI-powered job searching</p>
-                      <Button 
-                        onClick={() => setActiveTab('upload')}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No resumes uploaded</h3>
+                      <p className="text-gray-500 mb-4">Upload your first resume to get started with job searching.</p>
+                      <Button onClick={() => setActiveTab('upload')}>
                         Upload Resume
                       </Button>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {resumes.map((resume) => (
-                        <div key={resume.id} className="bg-white rounded-lg p-6 border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all">
+                        <div key={resume.id} className="border rounded-lg p-4">
                           <div className="flex items-start justify-between">
-                            <div className="flex items-start gap-4">
+                            <div className="flex items-start gap-3">
+                              <FileText className="h-6 w-6 text-blue-600 mt-1" />
                               <input
-                                type="checkbox"
-                                checked={selectedResumes.has(resume.id)}
-                                onChange={(e) => {
-                                  const newSelected = new Set(selectedResumes)
-                                  if (e.target.checked) {
-                                    newSelected.add(resume.id)
-                                  } else {
-                                    newSelected.delete(resume.id)
-                                  }
-                                  setSelectedResumes(newSelected)
-                                }}
-                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1"
-                              />
-                              <div className="bg-blue-100 rounded-lg p-3">
-                                <FileText className="h-6 w-6 text-blue-600" />
-                              </div>
+  type="checkbox"
+  checked={selectedResumes.has(resume.id)}
+  onChange={(e) => {
+    const newSelected = new Set(selectedResumes)
+    if (e.target.checked) {
+      newSelected.add(resume.id)
+    } else {
+      newSelected.delete(resume.id)
+    }
+    setSelectedResumes(newSelected)
+  }}
+  className="h-4 w-4 text-blue-600 rounded cursor-pointer"
+/>
                               <div className="flex-1">
-                                <h3 className="font-semibold text-gray-900 text-lg">{resume.filename}</h3>
-                                <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                                  <span>Uploaded {new Date(resume.upload_date).toLocaleDateString()}</span>
-                                  <span>•</span>
-                                  <span>{Math.round(resume.file_size / 1024)} KB</span>
-                                </div>
+                                <h3 className="font-medium">{resume.filename}</h3>
+                                <p className="text-sm text-gray-500">
+                                  Uploaded {new Date(resume.upload_date).toLocaleDateString()}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  Size: {Math.round(resume.file_size / 1024)} KB
+                                </p>
                                 
-                                <div className="flex flex-wrap gap-2 mt-3">
-                                  {resume.is_ats_optimized && (
-                                    <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
-                                      <Star className="h-3 w-3" />
-                                      ATS Optimized
-                                    </span>
-                                  )}
-                                  {resume.extracted_keywords && (
-                                    <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
-                                      <CheckCircle className="h-3 w-3" />
-                                      AI Parsed
-                                    </span>
-                                  )}
-                                </div>
+                                {resume.is_ats_optimized && (
+                                  <div className="mt-2 inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs">
+                                    <Star className="h-3 w-3" />
+                                    ATS Optimized
+                                  </div>
+                                )}
                                 
                                 {searchResults[resume.id] && (
-                                  <div className={`mt-4 p-4 rounded-lg ${
+                                  <div className={`mt-2 p-3 rounded-md ${
                                     searchResults[resume.id].status === 'success' 
                                       ? 'bg-green-50 border border-green-200' 
                                       : 'bg-red-50 border border-red-200'
@@ -969,113 +893,112 @@ export default function Dashboard() {
                                 )}
                                 
                                 {resume.total_jobs_found > 0 && !searchResults[resume.id] && (
-                                  <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                    <p className="text-sm font-medium text-blue-800">
-                                      📊 Last Search Results
+                                  <div className="mt-2 p-2 bg-blue-50 rounded-md">
+                                    <p className="text-sm font-medium text-blue-700">
+                                      📊 Last Search Results:
                                     </p>
-                                    <p className="text-sm text-blue-700 mt-1">
-                                      Found {resume.total_jobs_found} jobs across {resume.job_boards_searched} job boards
+                                    <p className="text-sm text-blue-600">
+                                      {resume.total_jobs_found} jobs found across {resume.job_boards_searched} job boards
                                     </p>
                                     {resume.last_search_date && (
-                                      <p className="text-sm text-blue-600 mt-1">
-                                        {new Date(resume.last_search_date).toLocaleDateString()}
+                                      <p className="text-sm text-blue-600">
+                                        Searched on {new Date(resume.last_search_date).toLocaleDateString()}
                                       </p>
                                     )}
                                   </div>
                                 )}
                                 
                                 {resume.extracted_keywords && (
-                                  <div className="mt-4 space-y-2">
+                                  <div className="mt-2">
+                                    <p className="text-sm font-medium text-green-600">
+                                      ✓ Parsed by AI
+                                    </p>
                                     {resume.extracted_keywords.currentJobTitle && (
-                                      <p className="text-sm text-gray-700">
-                                        <span className="text-gray-500">Role:</span> {resume.extracted_keywords.currentJobTitle}
+                                      <p className="text-sm text-gray-600">
+                                        Current role: {resume.extracted_keywords.currentJobTitle}
                                       </p>
                                     )}
                                     {resume.extracted_keywords.searchKeywords && (
-                                      <p className="text-sm text-gray-700">
-                                        <span className="text-gray-500">Skills:</span> {resume.extracted_keywords.searchKeywords.slice(0, 5).join(', ')}
+                                      <p className="text-sm text-gray-600">
+                                        Keywords: {resume.extracted_keywords.searchKeywords.slice(0, 5).join(', ')}
                                         {resume.extracted_keywords.searchKeywords.length > 5 && ` +${resume.extracted_keywords.searchKeywords.length - 5} more`}
                                       </p>
                                     )}
                                     {resume.extracted_keywords.experienceLevel && (
-                                      <p className="text-sm text-gray-700">
-                                        <span className="text-gray-500">Level:</span> {resume.extracted_keywords.experienceLevel}
+                                      <p className="text-sm text-gray-600">
+                                        Level: {resume.extracted_keywords.experienceLevel}
                                       </p>
                                     )}
                                   </div>
                                 )}
                               </div>
                             </div>
-                            <div className="flex gap-2 ml-4">
+                            <div className="flex gap-2">
                               {resume.total_jobs_found > 0 && resume.last_search_id && (
                                 <Button 
                                   size="sm" 
-                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                  className="bg-green-500 hover:bg-green-600 text-white"
                                   onClick={() => router.push(`/dashboard/results/${resume.last_search_id}`)}
                                 >
-                                  <BarChart className="h-4 w-4 mr-1" />
                                   View Results
                                 </Button>
                               )}
                               <Button 
                                 size="sm" 
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                variant="default"
                                 onClick={() => handleJobSearch(resume.id)}
                                 disabled={!resume.extracted_keywords || searchingJobs === resume.id}
                               >
                                 {searchingJobs === resume.id ? (
                                   <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                                     Searching...
                                   </>
                                 ) : (
-                                  <>
-                                    <Search className="h-4 w-4 mr-1" />
-                                    {resume.total_jobs_found > 0 ? 'Search Again' : 'Search Jobs'}
-                                  </>
+                                  resume.total_jobs_found > 0 ? 'Search Again' : 'Search Jobs'
                                 )}
                               </Button>
                               <Button 
-                                size="sm" 
-                                variant={resume.is_ats_optimized ? "default" : "secondary"}
-                                className={resume.is_ats_optimized ? "bg-green-500 hover:bg-green-600 text-white" : "bg-gray-600 hover:bg-gray-700 text-white"}
-                                onClick={() => {
-                                  if (resume.is_ats_optimized) {
-                                    router.push(`/dashboard/ats-results/${resume.id}`)
-                                  } else {
-                                    handleATSOptimize(resume.id)
-                                  }
-                                }}
-                                disabled={!resume.extracted_keywords || optimizingResume === resume.id}
-                              >
-                                {optimizingResume === resume.id ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                    Optimizing...
-                                  </>
-                                ) : resume.is_ats_optimized ? (
-                                  <>
-                                    <svg className="w-4 h-4 mr-1.5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    ATS Optimized
-                                  </>
-                                ) : (
-                                  <>
-                                    <Shield className="h-4 w-4 mr-1" />
-                                    ATS Optimize
-                                  </>
-                                )}
-                              </Button>
+  size="sm" 
+  variant={resume.is_ats_optimized ? "default" : "secondary"}
+  className={resume.is_ats_optimized ? "bg-green-500 hover:bg-green-600 text-white" : ""}
+  onClick={() => {
+    if (resume.is_ats_optimized) {
+      // If already optimized, go to the ATS results page
+      router.push(`/dashboard/ats-results/${resume.id}`)
+    } else {
+      // If not optimized, run the optimization
+      handleATSOptimize(resume.id)
+    }
+  }}
+  disabled={!resume.extracted_keywords || optimizingResume === resume.id}
+>
+  {optimizingResume === resume.id ? (
+    <>
+      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+      Optimizing...
+    </>
+  ) : resume.is_ats_optimized ? (
+    <>
+      <svg className="w-4 h-4 mr-1.5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      ATS Optimized
+    </>
+  ) : (
+    'ATS Optimize'
+  )}
+</Button>
                               <Button 
                                 size="sm" 
-                                variant="outline"
-                                className="border-red-300 text-red-600 hover:bg-red-50"
+                                variant="destructive"
                                 onClick={() => setResumeToDelete({id: resume.id, filename: resume.filename})}
                                 disabled={deletingResume === resume.id}
                               >
                                 {deletingResume === resume.id ? (
-                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-600 border-t-transparent"></div>
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                  </>
                                 ) : (
                                   <Trash2 className="h-4 w-4" />
                                 )}
@@ -1091,13 +1014,10 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="search">
-              <Card className="bg-white border-gray-200">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="text-gray-900 flex items-center gap-2">
-                    <Search className="h-5 w-5 text-blue-600" />
-                    Manual Job Search
-                  </CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardTitle>Manual Job Search</CardTitle>
+                  <CardDescription>
                     Search for jobs across all major job boards without uploading a resume
                   </CardDescription>
                 </CardHeader>
@@ -1111,13 +1031,10 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="favorites">
-              <Card className="bg-white border-gray-200">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="text-gray-900 flex items-center gap-2">
-                    <Star className="h-5 w-5 text-yellow-500" />
-                    My Favorite Jobs
-                  </CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardTitle>My Favorite Jobs</CardTitle>
+                  <CardDescription>
                     Jobs you've starred across all your searches
                   </CardDescription>
                 </CardHeader>
@@ -1131,7 +1048,7 @@ export default function Dashboard() {
       </main>
 
       <AlertDialog open={!!resumeToDelete} onOpenChange={() => setResumeToDelete(null)}>
-        <AlertDialogContent className="bg-white">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Resume</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1142,7 +1059,7 @@ export default function Dashboard() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteResume}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 hover:bg-red-700"
             >
               Delete
             </AlertDialogAction>
@@ -1158,24 +1075,24 @@ export default function Dashboard() {
       )}
 
       <AlertDialog open={showBulkDelete} onOpenChange={setShowBulkDelete}>
-        <AlertDialogContent className="bg-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {selectedResumes.size} Resumes</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedResumes.size} selected resumes? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleBulkDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              Delete All Selected
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Delete {selectedResumes.size} Resumes</AlertDialogTitle>
+      <AlertDialogDescription>
+        Are you sure you want to delete {selectedResumes.size} selected resumes? This action cannot be undone.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogAction 
+        onClick={handleBulkDelete}
+        className="bg-red-600 hover:bg-red-700"
+      >
+        Delete All Selected
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
     </div>
   )
 }
