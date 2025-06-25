@@ -39,7 +39,6 @@ export default function JobResultsPage() {
   const router = useRouter()
   const searchId = params.searchId as string
 
-  
   const [loading, setLoading] = useState(true)
   const [searchInfo, setSearchInfo] = useState<SearchInfo | null>(null)
   const [jobResults, setJobResults] = useState<JobResult[]>([])
@@ -55,60 +54,60 @@ export default function JobResultsPage() {
 
   useEffect(() => {
     loadJobResults()
-    loadFavorites()  // Add this line
+    loadFavorites()
   }, [searchId])
 
   const loadFavorites = async () => {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
 
-  const { data } = await supabase
-    .from('job_favorites')
-    .select('job_search_result_id')
-    .eq('user_id', session.user.id)
+    const { data } = await supabase
+      .from('job_favorites')
+      .select('job_search_result_id')
+      .eq('user_id', session.user.id)
 
-  if (data) {
-    setFavorites(new Set(data.map(f => f.job_search_result_id)))
-  }
-}
-
-const toggleFavorite = async (jobId: string) => {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return
-
-  setFavoriteLoading(jobId)
-  
-  try {
-    if (favorites.has(jobId)) {
-      // Remove from favorites
-      await supabase
-        .from('job_favorites')
-        .delete()
-        .eq('user_id', session.user.id)
-        .eq('job_search_result_id', jobId)
-      
-      setFavorites(prev => {
-        const newFavorites = new Set(prev)
-        newFavorites.delete(jobId)
-        return newFavorites
-      })
-    } else {
-      // Add to favorites
-      await supabase
-        .from('job_favorites')
-        .insert({
-          user_id: session.user.id,
-          job_search_result_id: jobId
-        })
-      
-      setFavorites(prev => new Set(prev).add(jobId))
+    if (data) {
+      setFavorites(new Set(data.map(f => f.job_search_result_id)))
     }
-  } catch (error) {
-    console.error('Error toggling favorite:', error)
-  } finally {
-    setFavoriteLoading(null)
   }
-}
+
+  const toggleFavorite = async (jobId: string) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+
+    setFavoriteLoading(jobId)
+    
+    try {
+      if (favorites.has(jobId)) {
+        // Remove from favorites
+        await supabase
+          .from('job_favorites')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('job_search_result_id', jobId)
+        
+        setFavorites(prev => {
+          const newFavorites = new Set(prev)
+          newFavorites.delete(jobId)
+          return newFavorites
+        })
+      } else {
+        // Add to favorites
+        await supabase
+          .from('job_favorites')
+          .insert({
+            user_id: session.user.id,
+            job_search_result_id: jobId
+          })
+        
+        setFavorites(prev => new Set(prev).add(jobId))
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    } finally {
+      setFavoriteLoading(null)
+    }
+  }
 
   useEffect(() => {
     filterAndSortResults()
@@ -318,29 +317,29 @@ const toggleFavorite = async (jobId: string) => {
                 >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-lg">{job.job_title}</h3>
-                    <div className="flex items-center gap-2">
-                    <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={(e) => {
-                    e.stopPropagation() // Prevent selecting the job
-                    toggleFavorite(job.id)
-                  }}
-      disabled={favoriteLoading === job.id}
-      className="h-8 w-8 p-0"
-    >
-      {favoriteLoading === job.id ? (
-        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
-      ) : (
-        <Star 
-          className={`h-4 w-4 ${favorites.has(job.id) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`} 
-        />
-      )}
-    </Button>
-    <Badge variant="secondary">{job.job_board}</Badge>
-  </div>
-</div>
+                      <h3 className="font-semibold text-lg">{job.job_title}</h3>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleFavorite(job.id)
+                          }}
+                          disabled={favoriteLoading === job.id}
+                          className="h-8 w-8 p-0"
+                        >
+                          {favoriteLoading === job.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
+                          ) : (
+                            <Star 
+                              className={`h-4 w-4 ${favorites.has(job.id) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`} 
+                            />
+                          )}
+                        </Button>
+                        <Badge variant="secondary">{job.job_board}</Badge>
+                      </div>
+                    </div>
                     <div className="space-y-1 text-sm text-gray-600">
                       <div className="flex items-center gap-2">
                         <Building2 className="h-4 w-4" />

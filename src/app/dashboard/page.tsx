@@ -28,6 +28,52 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [resumes, setResumes] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState('overview')
+  const [selectedResumes, setSelectedResumes] = useState<Set<string>>(new Set())
+  const [showBulkDelete, setShowBulkDelete] = useState(false)
+  const handleBulkDelete = async () => {
+  if (selectedResumes.size === 0) return
+  
+  try {
+    // Delete all selected resumes
+    for (const resumeId of selectedResumes) {
+      const resume = resumes.find(r => r.id === resumeId)
+      if (resume?.file_path) {
+        await supabase.storage
+          .from('resumes')
+          .remove([resume.file_path])
+      }
+      
+      await supabase
+        .from('resumes')
+        .update({ is_active: false })
+        .eq('id', resumeId)
+    }
+    
+    setNotifications(prev => [{
+      id: Date.now().toString(),
+      type: 'search_complete',
+      message: `Successfully deleted ${selectedResumes.size} resumes`,
+      read: false,
+      timestamp: new Date()
+    }, ...prev])
+    
+    if (user) {
+      await loadResumes(user.id)
+    }
+    
+    setSelectedResumes(new Set())
+    setShowBulkDelete(false)
+  } catch (error: any) {
+    console.error('Bulk delete error:', error)
+    setNotifications(prev => [{
+      id: Date.now().toString(),
+      type: 'error',
+      message: `Failed to delete resumes: ${error.message}`,
+      read: false,
+      timestamp: new Date()
+    }, ...prev])
+  }
+}
   const [searchingJobs, setSearchingJobs] = useState<string | null>(null)
   const [deletingResume, setDeletingResume] = useState<string | null>(null)
   const [resumeToDelete, setResumeToDelete] = useState<{id: string, filename: string} | null>(null)
@@ -92,7 +138,7 @@ export default function Dashboard() {
             .eq('resume_id', resume.id)
             .order('search_date', { ascending: false })
             .limit(1)
-            .single()
+            .maybeSingle() 
 
           if (searchData) {
             const { data: jobBoardsData } = await supabase
@@ -291,7 +337,7 @@ export default function Dashboard() {
       }
       
       // Navigate to ATS optimized page
-      router.push('/dashboard/ats-optimized')
+     router.push(`/dashboard/ats-results/${result.optimizedResumeId}`)
       
     } catch (error: any) {
       console.error('ATS optimization error:', error)
@@ -743,8 +789,36 @@ export default function Dashboard() {
             <TabsContent value="resumes" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>My Resumes</CardTitle>
-                </CardHeader>
+  <div className="flex items-center justify-between">
+    <CardTitle>My Resumes</CardTitle>
+    {resumes.length > 0 && (
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            if (selectedResumes.size === resumes.length) {
+              setSelectedResumes(new Set())
+            } else {
+              setSelectedResumes(new Set(resumes.map(r => r.id)))
+            }
+          }}
+        >
+          {selectedResumes.size === resumes.length ? 'Deselect All' : 'Select All'}
+        </Button>
+        {selectedResumes.size > 0 && (
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => setShowBulkDelete(true)}
+          >
+            Delete Selected ({selectedResumes.size})
+          </Button>
+        )}
+      </div>
+    )}
+  </div>
+</CardHeader>
                 <CardContent>
                   {resumes.length === 0 ? (
                     <div className="text-center py-8">
@@ -762,6 +836,20 @@ export default function Dashboard() {
                           <div className="flex items-start justify-between">
                             <div className="flex items-start gap-3">
                               <FileText className="h-6 w-6 text-blue-600 mt-1" />
+                              <input
+  type="checkbox"
+  checked={selectedResumes.has(resume.id)}
+  onChange={(e) => {
+    const newSelected = new Set(selectedResumes)
+    if (e.target.checked) {
+      newSelected.add(resume.id)
+    } else {
+      newSelected.delete(resume.id)
+    }
+    setSelectedResumes(newSelected)
+  }}
+  className="h-4 w-4 text-blue-600 rounded cursor-pointer"
+/>
                               <div className="flex-1">
                                 <h3 className="font-medium">{resume.filename}</h3>
                                 <p className="text-sm text-gray-500">
@@ -969,6 +1057,26 @@ export default function Dashboard() {
           onClick={() => setShowNotifications(false)}
         />
       )}
+
+      <AlertDialog open={showBulkDelete} onOpenChange={setShowBulkDelete}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Delete {selectedResumes.size} Resumes</AlertDialogTitle>
+      <AlertDialogDescription>
+        Are you sure you want to delete {selectedResumes.size} selected resumes? This action cannot be undone.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogAction 
+        onClick={handleBulkDelete}
+        className="bg-red-600 hover:bg-red-700"
+      >
+        Delete All Selected
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
     </div>
   )
 }
