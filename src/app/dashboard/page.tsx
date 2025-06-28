@@ -679,7 +679,7 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="bg-white border border-gray-200 p-1 rounded-lg grid w-full grid-cols-5">
+            <TabsList className="bg-white border border-gray-200 p-1 rounded-lg grid w-full grid-cols-6">
               <TabsTrigger 
                 value="overview" 
                 className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
@@ -699,7 +699,7 @@ export default function Dashboard() {
                 className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
               >
                 <FileText className="h-4 w-4 mr-2" />
-                Resumes ({resumes.length})
+                My Resumes ({resumes.length})
               </TabsTrigger>
               <TabsTrigger 
                 value="search"
@@ -707,6 +707,13 @@ export default function Dashboard() {
               >
                 <Search className="h-4 w-4 mr-2" />
                 Search
+              </TabsTrigger>
+              <TabsTrigger 
+              value="templates"
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
+>
+              <FileText className="h-4 w-4 mr-2" />
+              Templates
               </TabsTrigger>
               <TabsTrigger 
                 value="favorites"
@@ -747,7 +754,14 @@ export default function Dashboard() {
                       disabled={resumes.length === 0}
                     >
                       <Briefcase className="h-4 w-4 mr-2" />
-                      Resume Search
+                      My Resumes
+                    </Button>
+                    <Button 
+                    onClick={() => router.push('/dashboard/resume-builder')}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    >
+                    <FileText className="h-4 w-4 mr-2" />
+                   Resume Templates
                     </Button>
                   </CardContent>
                 </Card>
@@ -1110,6 +1124,11 @@ export default function Dashboard() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="templates">
+            {/* This will redirect immediately when the tab is clicked */}
+            {activeTab === 'templates' && router.push('/dashboard/resume-builder')}
+            </TabsContent>
+
             <TabsContent value="favorites">
               <Card className="bg-white border-gray-200">
                 <CardHeader>
@@ -1176,6 +1195,39 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <div className="mt-12 relative overflow-hidden">
+  <div className="bg-gradient-to-r from-blue-500 to-gray-500 rounded-2xl p-8 md:p-12 shadow-2xl">
+    <div className="relative z-10">
+      <div className="max-w-3xl mx-auto text-center">
+        <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          Transform Your Resume with AI-Powered Templates
+        </h2>
+        <p className="text-lg md:text-xl text-green-50 mb-8 leading-relaxed">
+          Choose from professional templates, Google Docs, PDF, Simple Text or Word Docs, and get instant ATS scoring, and receive personalized suggestions. 
+          Convert your existing resume into a job-winning masterpiece in minutes.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <Button 
+            onClick={() => router.push('/dashboard/resume-builder')}
+            className="bg-white text-green-460 hover:bg-gray-100 px-8 py-6 text-lg font-semibold shadow-lg transform hover:scale-105 transition-all"
+          >
+            <Sparkles className="h-5 w-5 mr-2" />
+            Start Building Your Resume
+          </Button>
+          <div className="flex items-center gap-2 text-white">
+            <CheckCircle className="h-5 w-5" />
+            <span>Over 25+ Professional Templates To Choose From</span>
+          </div>
+        </div>
+      </div>
     </div>
+    {/* Background decoration */}
+    <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 opacity-10">
+      <FileText className="h-96 w-96" />
+    </div>
+  </div>
+</div>
+    </div>
+    
   )
 }

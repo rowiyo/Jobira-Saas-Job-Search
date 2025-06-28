@@ -1,3 +1,5 @@
+export const runtime = 'nodejs' // Force Node.js runtime
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import OpenAI from 'openai'
@@ -14,7 +16,7 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('API route called - using smart parsing without pdf-parse')
+    console.log('API route called - parsing resume')
     
     const body = await request.json()
     const { resumeId, filePath } = body
@@ -28,64 +30,184 @@ export async function POST(request: NextRequest) {
 
     console.log('Processing resume:', { resumeId, filePath })
 
-    // For now, we'll use intelligent prompting based on the filename and user context
-    // Later we can add proper PDF parsing with a different library
-    const contextualResumePrompt = `
-Based on the uploaded resume file "${filePath}" for a user in the job search platform, 
-extract realistic career information for someone with a Principal Software Quality Assurance Engineer background.
+    // Download the file from Supabase Storage
+    const { data: fileData, error: downloadError } = await supabaseAdmin
+      .storage
+      .from('resumes')
+      .download(filePath)
 
-This person likely has:
-- 8-15 years of experience in software testing and quality assurance
-- Skills in automation testing, manual testing, test planning
-- Experience with testing frameworks like Selenium, Cypress, Jest
-- Knowledge of Agile/Scrum methodologies
-- Programming skills in languages like JavaScript, Python, Java
-- Experience with CI/CD, bug tracking, and test management tools
-- Leadership and mentoring experience
+    if (downloadError || !fileData) {
+      console.error('Download error:', downloadError)
+      return NextResponse.json(
+        { error: 'Failed to download file from storage' },
+        { status: 500 }
+      )
+    }
 
-Generate realistic resume data for this person.
-`
+    // Convert the file to text based on file type
+    let fileContent = ''
+    
+    // Check if it's a text file or PDF
+    if (filePath.endsWith('.txt')) {
+      fileContent = await fileData.text()
+    } else if (filePath.endsWith('.pdf')) {
+      try {
+        console.log('PDF file detected - attempting extraction with pdf-parse-new')
+        
+        // Dynamic import to avoid build issues
+        const pdfParse = (await import('pdf-parse-new')).default
+        
+        const arrayBuffer = await fileData.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        
+        const pdfData = await pdfParse(buffer, {
+          // Options to improve text extraction
+          max: 0, // Parse all pages
+        })
+        
+        fileContent = pdfData.text
+        
+        console.log('PDF parsing successful!')
+        console.log('Pages:', pdfData.numpages)
+        console.log('Text length:', fileContent.length)
+        console.log('First 1000 chars:', fileContent.substring(0, 1000))
+        
+      } catch (pdfError) {
+        console.error('PDF parsing error:', pdfError)
+        
+        // Fallback: Try to extract any readable text from the buffer
+        try {
+          const buffer = Buffer.from(await fileData.arrayBuffer())
+          const textDecoder = new TextDecoder('utf-8', { fatal: false })
+          const rawText = textDecoder.decode(buffer)
+          
+          // Extract readable ASCII text
+          fileContent = rawText
+            .split('')
+            .filter(char => {
+              const code = char.charCodeAt(0)
+              return (code >= 32 && code <= 126) || code === 10 || code === 13
+            })
+            .join('')
+            .replace(/\s+/g, ' ')
+            .trim()
+            
+          console.log('Fallback text extraction completed, length:', fileContent.length)
+        } catch (fallbackError) {
+          console.error('Fallback text extraction failed:', fallbackError)
+          fileContent = ''
+        }
+      }
+    } else if (filePath.endsWith('.doc') || filePath.endsWith('.docx')) {
+      console.log('DOC/DOCX file detected - these formats require additional libraries')
+      fileContent = ''
+    }
 
-    console.log('Sending to OpenAI for intelligent parsing...')
+    // Extract filename for context
+    const originalFilename = filePath.split('/').pop() || ''
+    const cleanFilename = originalFilename.replace(/^\d+_/, '')
 
-    const aiPrompt = `
-Extract the following information and create realistic data for a Principal Software Quality Assurance Engineer resume:
+    // Prepare AI prompt based on whether we have file content
+    let aiPrompt = ''
+    
+    if (!fileContent || fileContent.trim().length < 100) {
+      console.log('Insufficient text extracted, using contextual parsing based on filename')
+      
+      aiPrompt = `Based on a resume file upload (filename: ${cleanFilename}), generate realistic professional resume data.
 
-PERSONAL INFO:
-- name: "Rob Young" (from filename)
-- email: "rob.young@email.com" (realistic)
-- phone: "(555) 123-4567" (realistic)
-- location: "Massachusetts, USA" (based on user context)
+The filename suggests this person's name might be: ${cleanFilename.replace('.pdf', '').replace(/-/g, ' ').replace(/Resume/i, '').trim()}
 
-EXPERIENCE:
-- currentJobTitle: "Principal Software Quality Assurance Engineer"
-- yearsOfExperience: 12 (realistic for this level)
-- companies: ["TechCorp", "SoftwareStudio", "QualityFirst Solutions"]
-- keySkills: ["Test Automation", "Selenium WebDriver", "Cypress", "Jest", "Python", "JavaScript", "Agile Testing", "CI/CD", "Test Planning", "Bug Tracking", "Performance Testing", "API Testing"]
+Generate realistic resume data in the following JSON format:
 
-EDUCATION:
-- degrees: ["Bachelor of Science in Computer Science"]
-- schools: ["University of Massachusetts"]
+{
+  "personalInfo": {
+    "name": "use the name from the filename if it appears to contain a name",
+    "email": "professional email",
+    "phone": "phone number",
+    "location": "city, state",
+    "linkedin": "linkedin profile url"
+  },
+  "summary": "comprehensive professional summary",
+  "experience": [
+    {
+      "company": "company name",
+      "location": "city, state",
+      "title": "job title",
+      "dates": "start - end dates",
+      "responsibilities": ["list of responsibilities"],
+      "achievements": ["notable achievements"]
+    }
+  ],
+  "education": [
+    {
+      "degree": "degree type",
+      "field": "field of study",
+      "school": "school name",
+      "status": "completed"
+    }
+  ],
+  "skills": ["list of technical and soft skills"],
+  "certifications": ["relevant certifications"],
+  "coreCompetencies": ["core competencies"]
+}`
+    } else {
+      // We have actual file content, so parse it
+      console.log('Good text extraction! Using actual resume content for parsing')
+      
+      aiPrompt = `Extract ALL information from this resume into a structured JSON format. This is the ACTUAL resume text extracted from the PDF:
 
-SEARCH OPTIMIZATION:
-- searchKeywords: ["qa engineer", "quality assurance", "test automation", "selenium", "cypress", "software testing", "agile testing", "test planning", "bug tracking", "ci/cd", "python", "javascript", "performance testing", "api testing", "test management", "quality control", "automated testing", "manual testing", "test strategy", "defect management"]
-- jobTitles: ["Principal QA Engineer", "Senior Quality Assurance Engineer", "Test Automation Engineer", "QA Manager", "Software Test Engineer", "Quality Assurance Lead", "Testing Consultant", "QA Architect"]
-- preferredLocation: "Massachusetts, USA"
-- experienceLevel: "senior"
-- industries: ["Software Development", "Technology", "SaaS", "Enterprise Software", "Web Applications", "Mobile Applications"]
+===== START OF RESUME TEXT =====
+${fileContent}
+===== END OF RESUME TEXT =====
 
-SALARY EXPECTATIONS:
-- salaryRange: "110000-160000"
+Parse the above resume text carefully and return the data in this exact JSON format:
 
-Return only valid JSON, no explanations or additional text.
-`
+{
+  "personalInfo": {
+    "name": "extract the actual name from the resume",
+    "email": "extract the actual email from the resume",
+    "phone": "extract the actual phone from the resume",
+    "location": "extract the actual location/city from the resume",
+    "linkedin": "extract linkedin URL if mentioned"
+  },
+  "summary": "extract the actual professional summary or objective statement",
+  "experience": [
+    {
+      "company": "actual company name",
+      "location": "actual job location",
+      "title": "actual job title",
+      "dates": "actual employment dates",
+      "responsibilities": ["each actual responsibility or bullet point listed"],
+      "achievements": ["any specific achievements or accomplishments mentioned"]
+    }
+  ],
+  "education": [
+    {
+      "degree": "actual degree earned",
+      "field": "actual field of study/major",
+      "school": "actual school/university name",
+      "status": "graduation year or completion status"
+    }
+  ],
+  "skills": ["each actual skill mentioned in the resume"],
+  "certifications": ["each actual certification listed"],
+  "coreCompetencies": ["extract from core competencies section if it exists"]
+}
+
+IMPORTANT INSTRUCTIONS:
+1. Extract ONLY information that is actually present in the resume text above
+2. Do NOT make up or invent any information
+3. If a section is not present in the resume, use an empty array [] or null
+4. Pay close attention to formatting - the resume might have sections like "EXPERIENCE", "EDUCATION", "SKILLS" etc.
+5. Make sure to capture ALL job experiences, not just the most recent one`
+    }
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "You are an expert resume parser. Create realistic, detailed resume data in JSON format."
+          content: "You are an expert resume parser. Your job is to extract information EXACTLY as it appears in the resume text provided. Never make up or invent information. Only extract what is actually present in the text."
         },
         {
           role: "user", 
@@ -93,7 +215,7 @@ Return only valid JSON, no explanations or additional text.
         }
       ],
       temperature: 0.1,
-      max_tokens: 1500
+      max_tokens: 3000 // Increased for longer resumes
     })
 
     const aiResponse = completion.choices[0]?.message?.content
@@ -106,41 +228,41 @@ Return only valid JSON, no explanations or additional text.
 
     console.log('AI response received')
 
-let parsedData
-try {
-  parsedData = JSON.parse(aiResponse)
-} catch (jsonError) {
-  console.error('JSON parsing error:', jsonError)
-  console.error('AI response that failed to parse:', aiResponse)
-  
-  // Try to extract JSON from the response if it's wrapped in text
-  const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
-  if (jsonMatch) {
+    let parsedData
     try {
-      parsedData = JSON.parse(jsonMatch[0])
-      console.log('Successfully extracted JSON from wrapped response')
-    } catch (secondError) {
-      console.error('Second JSON parsing attempt failed:', secondError)
-      return NextResponse.json(
-        { error: `Invalid JSON format. AI Response: ${aiResponse.substring(0, 500)}...` },
-        { status: 500 }
-      )
+      parsedData = JSON.parse(aiResponse)
+    } catch (jsonError) {
+      console.error('JSON parsing error:', jsonError)
+      
+      // Try to extract JSON from the response if it's wrapped in text
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        try {
+          parsedData = JSON.parse(jsonMatch[0])
+          console.log('Successfully extracted JSON from wrapped response')
+        } catch (secondError) {
+          console.error('Second JSON parsing attempt failed:', secondError)
+          return NextResponse.json(
+            { error: 'Invalid JSON format from AI' },
+            { status: 500 }
+          )
+        }
+      } else {
+        return NextResponse.json(
+          { error: 'No JSON found in AI response' },
+          { status: 500 }
+        )
+      }
     }
-  } else {
-    return NextResponse.json(
-      { error: `No JSON found in AI response: ${aiResponse.substring(0, 500)}...` },
-      { status: 500 }
-    )
-  }
-}
 
     console.log('Parsed data extracted successfully')
+    console.log('Extracted name:', parsedData.personalInfo?.name)
 
     // Update resume record with parsed data
     const { data: updatedResume, error: updateError } = await supabaseAdmin
       .from('resumes')
       .update({
-        parsed_content: `Resume file: ${filePath}\nNote: PDF text extraction will be added in future update.`,
+        parsed_content: fileContent || 'Unable to extract text - used AI contextual parsing',
         extracted_keywords: parsedData
       })
       .eq('id', resumeId)
@@ -150,7 +272,7 @@ try {
     if (updateError) {
       console.error('Update error:', updateError)
       return NextResponse.json(
-        { error: `Failed to save parsed data: ${updateError.message}` },
+        { error: 'Failed to save parsed data: ' + updateError.message },
         { status: 500 }
       )
     }
@@ -160,7 +282,12 @@ try {
     return NextResponse.json({
       success: true,
       resume: updatedResume,
-      extractedData: parsedData
+      extractedData: parsedData,
+      textExtracted: fileContent.length > 100,
+      textLength: fileContent.length,
+      note: fileContent.length < 100 
+        ? 'Unable to extract text from PDF - used AI to generate data based on filename' 
+        : 'Successfully extracted and parsed resume content'
     })
 
   } catch (error: any) {

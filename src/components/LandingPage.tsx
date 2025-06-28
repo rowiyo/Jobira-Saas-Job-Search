@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Sparkles, Target, Zap, Shield, Search, Upload, BarChart3, Star, CheckCircle, Menu, X, Briefcase, Users, TrendingUp, Award } from 'lucide-react'
+import { ArrowRight, Sparkles, Target, Zap, Shield, Search, Upload, BarChart3, Star, Gauge, CheckCircle, Menu, X, Briefcase, Users, TrendingUp, Award } from 'lucide-react'
 
 export function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -95,26 +95,28 @@ export function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section */}
+
       <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-8 max-w-4xl mx-auto">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
               <Sparkles className="h-4 w-4" />
-              Trusted by 500,000+ job seekers
+              Trusted by job seekers like you
             </div>
+            
             
             {/* Heading */}
             <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
               Find Your Dream Job
-              <span className="block text-blue-600">10x Faster</span>
+              <span className="block text-blue-600">4X FASTER</span>
             </h1>
             
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Upload your resume once. Search all major job boards instantly. 
-              Get perfectly matched jobs without duplicates.
+              Upload Resume → AI Searches All Job Boards → Get Matched Jobs → Optimize ATS Score → Get Hired Faster
             </p>
+
+          
             
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
@@ -145,6 +147,7 @@ export function LandingPage() {
               </div>
             </div>
           </div>
+          
 
           {/* Dashboard preview */}
           <div className="relative mt-16 max-w-5xl mx-auto">
@@ -194,15 +197,15 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
             <div>
-              <p className="text-4xl font-bold text-gray-900">500K+</p>
+              <p className="text-4xl font-bold text-gray-900">1</p>
               <p className="text-gray-600 mt-2">Active Users</p>
             </div>
             <div>
-              <p className="text-4xl font-bold text-gray-900">10M+</p>
+              <p className="text-4xl font-bold text-gray-900">50+</p>
               <p className="text-gray-600 mt-2">Jobs Analyzed</p>
             </div>
             <div>
-              <p className="text-4xl font-bold text-gray-900">24hrs</p>
+              <p className="text-4xl font-bold text-gray-900">2 Weeks</p>
               <p className="text-gray-600 mt-2">Avg. Time to Hire</p>
             </div>
             <div>
@@ -233,11 +236,23 @@ export function LandingPage() {
                 description: "AI extracts your skills and finds perfect matches instantly",
                 color: "blue"
               },
+               {
+                icon: <Shield className="h-6 w-6" />,
+                 title: "ATS Optimizer",
+                description: "Optimize your resume to get past ATS systems",
+                color: "green"
+              },
               {
                 icon: <Search className="h-6 w-6" />,
                 title: "10+ Job Boards",
                 description: "Search everywhere at once. LinkedIn, Indeed, Glassdoor & more",
                 color: "blue"
+              },
+                {
+                icon: <BarChart3 className="h-6 w-6" />,
+                title: "Track Everything",
+                description: "Manage applications, interviews, and offers in one place",
+                color: "green"
               },
               {
                 icon: <Zap className="h-6 w-6" />,
@@ -251,18 +266,8 @@ export function LandingPage() {
                 description: "Our AI ensures every match is actually relevant",
                 color: "green"
               },
-              {
-                icon: <Shield className="h-6 w-6" />,
-                title: "No Duplicates",
-                description: "See each job once, even if it's on multiple sites",
-                color: "blue"
-              },
-              {
-                icon: <BarChart3 className="h-6 w-6" />,
-                title: "Track Everything",
-                description: "Manage applications, interviews, and offers in one place",
-                color: "gray"
-              }
+              
+            
             ].map((feature, index) => (
               <div key={index} className="bg-white p-8 rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all">
                 <div className={`${
@@ -350,7 +355,7 @@ export function LandingPage() {
                   "{testimonials[currentTestimonial].content}"
                 </p>
                 <div className="flex items-center justify-center gap-4">
-                  <div className="w-16 h-16 bg-gray-200 rounded-full" />
+                  <img src={testimonials[currentTestimonial].image} alt={testimonials[currentTestimonial].name} className="w-16 h-16 rounded-full object-cover" />
                   <div className="text-left">
                     <p className="font-semibold text-gray-900">{testimonials[currentTestimonial].name}</p>
                     <p className="text-gray-600">{testimonials[currentTestimonial].role}</p>
@@ -381,10 +386,10 @@ export function LandingPage() {
       <section className="py-20 bg-blue-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold text-white mb-6">
-            Ready to 10x Your Job Search?
+            Ready to 4x Your Job Search?
           </h2>
           <p className="text-xl text-blue-100 mb-8">
-            Join 500,000+ professionals who found their dream jobs faster
+            Join 1 professional who has not found his dream job faster
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/auth">
@@ -401,13 +406,35 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 bg-gray-50 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-gray-600">© 2024 Jobira. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <footer className="py-12 bg-gray-50 border-t border-gray-200 relative z-50">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="text-center">
+      <p className="text-gray-600 mb-4">© 2024 Jobira. All rights reserved.</p>
+      <div className="space-x-6 text-sm">
+        <button 
+          onClick={() => window.location.href = '/terms'}
+          className="text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+        >
+          Terms of Service
+        </button>
+        <span className="text-gray-400">|</span>
+        <button 
+          onClick={() => window.location.href = '/privacy'}
+          className="text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+        >
+          Privacy Policy
+        </button>
+        <span className="text-gray-400">|</span>
+        <button 
+          onClick={() => window.location.href = '/contact'}
+          className="text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+        >
+          Contact
+        </button>
+      </div>
+    </div>
+  </div>
+</footer>
     </div>
   )
 }

@@ -6,6 +6,10 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Upload, FileText, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import * as pdfjsLib from 'pdfjs-dist'
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
 
 interface ResumeUploadProps {
   onUploadSuccess?: (resume: any) => void
@@ -71,6 +75,26 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
       setUploading(false)
       setParsing(true)
 
+      let extractedText = ''
+if (file.type === 'application/pdf') {
+  try {
+    const arrayBuffer = await file.arrayBuffer()
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i)
+      const textContent = await page.getTextContent()
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ')
+      extractedText += pageText + ' '
+    }
+    console.log('Extracted text length:', extractedText.length)
+  } catch (error) {
+    console.error('Client-side PDF extraction failed:', error)
+  }
+}
+
       // Parse resume with AI
       const parseResponse = await fetch('/api/parse-resume', {
         method: 'POST',
@@ -79,7 +103,8 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
         },
         body: JSON.stringify({
           resumeId: resumeData.id,
-          filePath: uploadData.path
+          filePath: uploadData.path,
+          fileContent: extractedText 
         })
       })
 
@@ -91,6 +116,9 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
 
       const parseResult = await parseResponse.json()
       console.log('Parse result:', parseResult)
+
+      //Logging for resume parsing
+      console.log('Extracted data details:', JSON.stringify(parseResult.extractedData, null, 2))
 
       setParsing(false)
       setSuccess('Resume uploaded and parsed successfully!')
