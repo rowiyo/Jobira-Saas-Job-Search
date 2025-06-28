@@ -12,6 +12,8 @@ import { ResumeTemplate, ResumeScore } from '@/lib/types/template'
 import { resumeTemplates } from '@/lib/data/templates'
 import { ResumeEditor } from '@/components/resume/ResumeEditor'
 import { ResumePreview } from '@/components/resume/ResumePreview'
+import { ResumeDisplay } from '@/components/resume/ResumeDisplay'
+
 
 
 
@@ -36,7 +38,6 @@ export default function ResumeBuilder() {
   const [resumeScore, setResumeScore] = useState<ResumeScore | null>(null)
   const [convertedResume, setConvertedResume] = useState<string>('')
   const [loading, setLoading] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
   const [editingData, setEditingData] = useState<any>(null)
   const [resumeData, setResumeData] = useState<any>(null)
 
@@ -53,17 +54,11 @@ export default function ResumeBuilder() {
   await convertResumeToTemplate(resume, selectedTemplate!)
 }
 
-  
-
-  const handleEdit = () => {
-  setIsEditing(true)
-  setEditingData(uploadedResume.extracted_keywords)
-}
 
 const handleSaveEdit = async (data: any) => {
   // Update resume with edited data
   setEditingData(data)
-  setIsEditing(false)
+  // Remove this line: setIsEditing(false)
   // Reconvert with new data
   await convertResumeToTemplate({...uploadedResume, extracted_keywords: data}, selectedTemplate!)
 }
@@ -73,6 +68,12 @@ const handleAutoFix = async () => {
   console.log('Auto-fixing...')
 }
 
+const handleOptimizeForATS = async () => {
+  console.log('Optimizing for ATS...')
+  // Add your ATS optimization logic here
+  // You can navigate to the ATS optimization page or call an API
+  router.push(`/dashboard/ats-optimization?resumeId=${uploadedResume.id}`)
+}
   const convertResumeToTemplate = async (resume: any, templateId: string) => {
   setLoading(true)
   try {
@@ -167,33 +168,63 @@ const handleAutoFix = async () => {
           </div>
         )}
 
-      {step === 3 && !isEditing && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              <ResumePreview
-  resumeContent={convertedResume}
-  templateId={selectedTemplate!}
-  resumeName={uploadedResume?.filename?.replace('.pdf', '')}
-  resumeData={resumeData}  // Add this line
-  onEdit={handleEdit}
-  onSave={handleSaveEdit}  // Add this line
-/>
-            </div>
-            <div>
-              {resumeScore && <ResumeScoreDisplay score={resumeScore} />}
-            </div>
-          </div>
-        )}
-        
-        {step === 3 && isEditing && (
-          <ResumeEditor
-            resumeData={editingData}
-            onSave={handleSaveEdit}
-            onCancel={() => setIsEditing(false)}
-            onAutoFix={handleAutoFix}
-          />
-        )}
+      {step === 3 && (
+  <div>
+    {/* Page Title */}
+    <h1 className="text-3xl font-bold text-center mb-8">Your Resume</h1>
+    
+    {/* Action Buttons - Above the resume (removed Edit button) */}
+    <div className="flex gap-4 justify-center mb-8">
+      <Button 
+        onClick={() => handleOptimizeForATS()} 
+        className="bg-blue-600 hover:bg-blue-700"
+        size="lg"
+      >
+        Optimize for ATS
+      </Button>
+      <Button 
+        variant="outline"
+        onClick={() => {
+          // Add download functionality here
+          console.log('Download resume')
+        }}
+        size="lg"
+      >
+        Download PDF
+      </Button>
+      <Button
+        onClick={() => setStep(2)}
+        variant="outline"
+        size="lg"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Upload Different Resume
+      </Button>
+    </div>
+    
+    {/* Grid Layout: Resume on left, Score on right */}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* ResumePreview handles both display and inline editing */}
+      <div className="lg:col-span-2">
+        <ResumePreview
+          resumeContent={convertedResume}
+          templateId={selectedTemplate!}
+          resumeName={uploadedResume?.filename?.replace('.pdf', '')}
+          resumeData={resumeData}
+          onEdit={() => {}} // Empty function since ResumePreview handles its own editing
+          onSave={handleSaveEdit}
+        />
+      </div>
+      
+      {/* Score Display */}
+      <div className="lg:col-span-1">
+        {resumeScore && <ResumeScoreDisplay score={resumeScore} />}
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </div>
   )
 }
+

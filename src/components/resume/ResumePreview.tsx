@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from '@/components/ui/input'
 import EditableResumePreview from './EditableResumePreview'
+import { ResumeDisplay } from '@/components/resume/ResumeDisplay'
 
 interface ResumePreviewProps {
   resumeContent: string
@@ -94,51 +95,26 @@ export function ResumePreview({
     )
   }
 
-  // Otherwise show the preview
+  // Otherwise show the formatted resume with ResumeDisplay
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Resume Preview</h3>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleEditClick}>
-              <Edit className="h-4 w-4 mr-1" />
-              Edit
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => window.print()}>
-              <Printer className="h-4 w-4 mr-1" />
-              Print
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowEmailDialog(true)}>
-              <Mail className="h-4 w-4 mr-1" />
-              Email
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={() => handleDownload('pdf')}
-              disabled={downloading}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {downloading ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-1" />
-              )}
-              Download PDF
-            </Button>
-          </div>
+      <div className="relative">
+        {/* Move button outside and increase z-index */}
+        <div className="flex justify-end mb-4">
+          <Button
+            onClick={() => {
+              setIsEditMode(true)
+            }}
+            variant="outline"
+            size="sm"
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Resume
+          </Button>
         </div>
-
-        <Card className="bg-white shadow-lg">
-          <div className="aspect-[8.5/11] w-full overflow-hidden rounded-lg">
-            <iframe
-              srcDoc={resumeContent}
-              className="w-full h-full"
-              title="Resume Preview"
-              style={{ transform: 'scale(0.9)', transformOrigin: 'top center' }}
-            />
-          </div>
-        </Card>
+        
+        {/* Use ResumeDisplay for formatted view */}
+        <ResumeDisplay resumeData={resumeData} />
       </div>
 
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
