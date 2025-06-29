@@ -56,11 +56,19 @@ export default function ResumeBuilder() {
 
 
 const handleSaveEdit = async (data: any) => {
-  // Update resume with edited data
-  setEditingData(data)
-  // Remove this line: setIsEditing(false)
+  // Update the uploadedResume with new data
+  const updatedResume = {
+    ...uploadedResume,
+    extracted_keywords: data,
+    extractedData: data
+  }
+  
+  setUploadedResume(updatedResume)  // Update the source
+  setResumeData(data)  // Update the display
+  setEditingData(data)  // Update editing data
+  
   // Reconvert with new data
-  await convertResumeToTemplate({...uploadedResume, extracted_keywords: data}, selectedTemplate!)
+  await convertResumeToTemplate(updatedResume, selectedTemplate!)
 }
 
 const handleAutoFix = async () => {
@@ -218,7 +226,7 @@ const handleOptimizeForATS = async () => {
       
       {/* Score Display */}
       <div className="lg:col-span-1">
-        {resumeScore && <ResumeScoreDisplay score={resumeScore} />}
+        <ResumeScoreDisplay score={resumeScore} resumeData={resumeData} />}
       </div>
     </div>
   </div>
