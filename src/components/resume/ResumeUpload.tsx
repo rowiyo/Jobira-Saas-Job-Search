@@ -9,7 +9,115 @@ import { Upload, FileText, AlertCircle, CheckCircle, Loader2 } from 'lucide-reac
 import * as pdfjsLib from 'pdfjs-dist'
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+interface ResumeSkeletonLoaderProps {
+  stage: 'uploading' | 'processing' | 'extracting' | 'finalizing'
+  fileName?: string
+}
+
+const ResumeSkeletonLoader: React.FC<ResumeSkeletonLoaderProps> = ({ stage, fileName }) => {
+  const stages = {
+    uploading: { text: 'Uploading your resume...', progress: 25 },
+    processing: { text: 'AI analyzing document structure...', progress: 50 },
+    extracting: { text: 'AI is extracting skills and experience...', progress: 75 },
+    finalizing: { text: 'Finalizing your profile...', progress: 90 }
+  }
+
+  const currentStage = stages[stage]
+
+  return (
+    <div className="w-full max-w-2xl mx-auto p-6 space-y-6">
+      {/* Progress bar */}
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">{currentStage.text}</span>
+          <span className="text-gray-500">{currentStage.progress}%</span>
+        </div>
+      <div className="relative h-4 bg-slate-800 rounded-full overflow-hidden border border-gray-600">
+  <div 
+    className="absolute inset-0 bg-gradient-to-r from-blue-600 via-gray-600 to-green-600 
+               rounded-full transition-all duration-700 ease-out bg-[length:200%_100%] 
+               animate-shimmer"
+    style={{ width: `${currentStage.progress}%` }}
+  />
+</div>
+      </div>
+
+      {/* Resume skeleton preview */}
+      <Card className="p-8 bg-white border-2 border-gray-100 relative overflow-hidden">
+        {/* Shimmer overlay */}
+        <div className="absolute inset-0 -translate-x-full animate-shimmer-slide bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+        
+        {/* Header skeleton */}
+       {/* Header skeleton */}
+<div className="space-y-4 mb-8">
+  <div className="h-8 bg-gray-300 rounded w-1/3 animate-pulse" />
+  <div className="flex space-x-4">
+    <div className="h-4 bg-gray-300 rounded w-1/4 animate-pulse" />
+    <div className="h-4 bg-gray-300 rounded w-1/4 animate-pulse" />
+    <div className="h-4 bg-gray-300 rounded w-1/4 animate-pulse" />
+  </div>
+</div>
+
+{/* Summary skeleton */}
+<div className="space-y-3 mb-8">
+  <div className="h-5 bg-gray-300 rounded w-1/4 animate-pulse" />
+  <div className="space-y-2">
+    <div className="h-3 bg-gray-200 rounded w-full animate-pulse" />
+    <div className="h-3 bg-gray-200 rounded w-5/6 animate-pulse" />
+    <div className="h-3 bg-gray-200 rounded w-4/5 animate-pulse" />
+  </div>
+</div>
+
+        {/* Experience skeleton */}
+        <div className="space-y-6">
+          <div className="h-5 bg-gray-200 rounded w-1/3 animate-pulse" />
+          
+          {[1, 2].map((i) => (
+            <div key={i} className="space-y-3 pl-4 border-l-2 border-gray-100">
+              <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse" />
+              <div className="h-3 bg-gray-100 rounded w-1/2 animate-pulse" />
+              <div className="space-y-2">
+                <div className="h-3 bg-gray-50 rounded w-5/6 animate-pulse" />
+                <div className="h-3 bg-gray-50 rounded w-4/5 animate-pulse" />
+                <div className="h-3 bg-gray-50 rounded w-5/6 animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Skills skeleton */}
+        <div className="mt-8 space-y-3">
+          <div className="h-5 bg-gray-200 rounded w-1/4 animate-pulse" />
+          <div className="flex flex-wrap gap-2">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-6 bg-gray-100 rounded-full w-20 animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* Status indicators */}
+      <div className="flex items-center justify-center space-x-6 text-sm">
+        <div className={`flex items-center space-x-2 ${stage === 'uploading' ? 'text-blue-600' : 'text-gray-400'}`}>
+          <div className={`w-2 h-2 rounded-full ${stage === 'uploading' ? 'bg-blue-600 animate-pulse' : 'bg-gray-300'}`} />
+          <span>Upload</span>
+        </div>
+        <div className={`flex items-center space-x-2 ${stage === 'processing' ? 'text-blue-600' : 'text-gray-400'}`}>
+          <div className={`w-2 h-2 rounded-full ${stage === 'processing' ? 'bg-blue-600 animate-pulse' : 'bg-gray-300'}`} />
+          <span>Process</span>
+        </div>
+        <div className={`flex items-center space-x-2 ${stage === 'extracting' ? 'text-blue-600' : 'text-gray-400'}`}>
+          <div className={`w-2 h-2 rounded-full ${stage === 'extracting' ? 'bg-blue-600 animate-pulse' : 'bg-gray-300'}`} />
+          <span>Extract</span>
+        </div>
+        <div className={`flex items-center space-x-2 ${stage === 'finalizing' ? 'text-blue-600' : 'text-gray-400'}`}>
+          <div className={`w-2 h-2 rounded-full ${stage === 'finalizing' ? 'bg-blue-600 animate-pulse' : 'bg-gray-300'}`} />
+          <span>Finalize</span>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 interface ResumeUploadProps {
   onUploadSuccess?: (resume: any) => void
@@ -20,14 +128,22 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
   const [parsing, setParsing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [processingStage, setProcessingStage] = useState<'uploading' | 'processing' | 'extracting' | 'finalizing'>('uploading')
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (!file) return
 
+    setUploadedFile(file)
     setError(null)
     setSuccess(null)
     setUploading(true)
+    setProcessingStage('uploading')
+    //added delay
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    
 
     try {
       // Get current user
@@ -51,6 +167,10 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
       }
 
       console.log('File uploaded successfully:', uploadData)
+      setProcessingStage('processing')
+      //Added delay
+      await new Promise(resolve => setTimeout(resolve, 1500))
+  
 
       // Save resume record to database
       const { data: resumeData, error: dbError } = await supabase
@@ -69,32 +189,36 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
         console.error('Database error:', dbError)
         throw new Error(`Database error: ${dbError.message}`)
       }
-
+      
       console.log('Resume record created:', resumeData)
 
       setUploading(false)
       setParsing(true)
+      setProcessingStage('extracting')
+      //added delay after extracting
+      await new Promise(resolve => setTimeout(resolve, 800))
 
       let extractedText = ''
-if (file.type === 'application/pdf') {
-  try {
-    const arrayBuffer = await file.arrayBuffer()
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-    
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i)
-      const textContent = await page.getTextContent()
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ')
-      extractedText += pageText + ' '
-    }
-    console.log('Extracted text length:', extractedText.length)
-  } catch (error) {
-    console.error('Client-side PDF extraction failed:', error)
-  }
-}
-
+      if (file.type === 'application/pdf') {
+        try {
+          const arrayBuffer = await file.arrayBuffer()
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+          
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i)
+            const textContent = await page.getTextContent()
+            const pageText = textContent.items
+              .map((item: any) => item.str)
+              .join(' ')
+            extractedText += pageText + ' '
+          }
+          console.log('Extracted text length:', extractedText.length)
+        } catch (error) {
+          console.error('Client-side PDF extraction failed:', error)
+        }
+      }
+      //delay after pdf extraction
+      await new Promise(resolve => setTimeout(resolve, 500))
       // Parse resume with AI
       const parseResponse = await fetch('/api/parse-resume', {
         method: 'POST',
@@ -109,20 +233,26 @@ if (file.type === 'application/pdf') {
       })
 
       if (!parseResponse.ok) {
-  const errorText = await parseResponse.text()
-  console.error('API Error Response:', errorText)
-  throw new Error(`API Error (${parseResponse.status}): ${errorText.substring(0, 200)}...`)
-}
+        const errorText = await parseResponse.text()
+        console.error('API Error Response:', errorText)
+        throw new Error(`API Error (${parseResponse.status}): ${errorText.substring(0, 200)}...`)
+      }
+
+      setProcessingStage('finalizing')
+      //delay on finalizing
+      await new Promise(resolve => setTimeout(resolve, 1200))
 
       const parseResult = await parseResponse.json()
       console.log('Parse result:', parseResult)
 
-      //Logging for resume parsing
+      // Logging for resume parsing
       console.log('Extracted data details:', JSON.stringify(parseResult.extractedData, null, 2))
 
       setParsing(false)
       setSuccess('Resume uploaded and parsed successfully!')
-      
+      //delay before success
+       await new Promise(resolve => setTimeout(resolve, 500))
+
       if (onUploadSuccess) {
         onUploadSuccess(parseResult.resume)
       }
@@ -175,24 +305,14 @@ if (file.type === 'application/pdf') {
           
           <div className="flex flex-col items-center gap-4">
             {isProcessing ? (
-              <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
+              <ResumeSkeletonLoader 
+                stage={processingStage} 
+                fileName={uploadedFile?.name}
+              />
             ) : (
-              <Upload className="h-12 w-12 text-gray-400" />
-            )}
-            
-            <div>
-              {uploading && (
-                <p className="text-lg font-medium text-blue-600">
-                  Uploading your resume...
-                </p>
-              )}
-              {parsing && (
-                <p className="text-lg font-medium text-purple-600">
-                  Parsing resume with AI...
-                </p>
-              )}
-              {!isProcessing && (
-                <>
+              <>
+                <Upload className="h-12 w-12 text-gray-400" />
+                <div>
                   {isDragActive ? (
                     <p className="text-lg font-medium text-blue-600">
                       Drop your resume here
@@ -205,9 +325,9 @@ if (file.type === 'application/pdf') {
                   <p className="text-sm text-gray-500 mt-2">
                     Supports PDF, DOC, and DOCX files
                   </p>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
