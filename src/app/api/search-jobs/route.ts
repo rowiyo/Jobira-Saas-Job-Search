@@ -88,27 +88,38 @@ export async function POST(request: NextRequest) {
       
       // Create job search record
       const { data: jobSearch, error: searchError } = await supabaseAdmin
-        .from('job_searches')
-        .insert({
-          user_id: userId,
-          search_type: searchType,
-          resume_id: body.resumeId || null,
-          job_title: searchJobTitle,
-          location: searchLocation,
-          location_type: searchParams.locationType || 'any',
-          search_keywords: jobKeywords,
-          status: 'running'
-        })
-        .select()
-        .single()
+  .from('job_searches')
+  .insert({
+    user_id: userId,
+    search_type: searchType,
+    resume_id: body.resumeId || null,
+    job_title: searchJobTitle,
+    location: searchLocation,
+    location_type: searchParams.locationType || 'any',
+    search_keywords: jobKeywords,
+    status: 'running'
+  })
+  .select()
+  .single()
 
-      if (searchError || !jobSearch) {
-        console.error('❌ Job search creation error:', searchError)
-        return NextResponse.json(
-          { error: 'Failed to create job search record' },
-          { status: 500 }
-        )
-      }
+if (searchError || !jobSearch) {
+  console.error('❌ Job search creation error:', searchError)
+  console.error('Full error details:', JSON.stringify(searchError, null, 2))
+  console.error('Insert data:', {
+    user_id: userId,
+    search_type: searchType,
+    resume_id: body.resumeId || null,
+    job_title: searchJobTitle,
+    location: searchLocation,
+    location_type: searchParams.locationType || 'any',
+    search_keywords: jobKeywords,
+    status: 'running'
+  })
+  return NextResponse.json(
+    { error: `Failed to create job search record: ${searchError?.message || 'Unknown error'}` },
+    { status: 500 }
+  )
+}
 
       console.log('📝 Job search record created:', jobSearch.id)
 

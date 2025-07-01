@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-browser' // Changed import
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -38,6 +38,7 @@ export default function JobResultsPage() {
   const params = useParams()
   const router = useRouter()
   const searchId = params.searchId as string
+   const supabase = createClient()
 
   const [loading, setLoading] = useState(true)
   const [searchInfo, setSearchInfo] = useState<SearchInfo | null>(null)

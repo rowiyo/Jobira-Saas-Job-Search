@@ -2,12 +2,10 @@
 
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-browser'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Upload, FileText, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
-import * as pdfjsLib from 'pdfjs-dist'
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
 
 interface ResumeSkeletonLoaderProps {
   stage: 'uploading' | 'processing' | 'extracting' | 'finalizing'
@@ -32,14 +30,14 @@ const ResumeSkeletonLoader: React.FC<ResumeSkeletonLoaderProps> = ({ stage, file
           <span className="text-gray-600">{currentStage.text}</span>
           <span className="text-gray-500">{currentStage.progress}%</span>
         </div>
-      <div className="relative h-4 bg-slate-800 rounded-full overflow-hidden border border-gray-600">
-  <div 
-    className="absolute inset-0 bg-gradient-to-r from-blue-600 via-gray-600 to-green-600 
-               rounded-full transition-all duration-700 ease-out bg-[length:200%_100%] 
-               animate-shimmer"
-    style={{ width: `${currentStage.progress}%` }}
-  />
-</div>
+        <div className="relative h-4 bg-slate-800 rounded-full overflow-hidden border border-gray-600">
+          <div 
+            className="absolute inset-0 bg-gradient-to-r from-blue-600 via-gray-600 to-green-600 
+                       rounded-full transition-all duration-700 ease-out bg-[length:200%_100%] 
+                       animate-shimmer"
+            style={{ width: `${currentStage.progress}%` }}
+          />
+        </div>
       </div>
 
       {/* Resume skeleton preview */}
@@ -48,25 +46,24 @@ const ResumeSkeletonLoader: React.FC<ResumeSkeletonLoaderProps> = ({ stage, file
         <div className="absolute inset-0 -translate-x-full animate-shimmer-slide bg-gradient-to-r from-transparent via-white/50 to-transparent" />
         
         {/* Header skeleton */}
-       {/* Header skeleton */}
-<div className="space-y-4 mb-8">
-  <div className="h-8 bg-gray-300 rounded w-1/3 animate-pulse" />
-  <div className="flex space-x-4">
-    <div className="h-4 bg-gray-300 rounded w-1/4 animate-pulse" />
-    <div className="h-4 bg-gray-300 rounded w-1/4 animate-pulse" />
-    <div className="h-4 bg-gray-300 rounded w-1/4 animate-pulse" />
-  </div>
-</div>
+        <div className="space-y-4 mb-8">
+          <div className="h-8 bg-gray-300 rounded w-1/3 animate-pulse" />
+          <div className="flex space-x-4">
+            <div className="h-4 bg-gray-300 rounded w-1/4 animate-pulse" />
+            <div className="h-4 bg-gray-300 rounded w-1/4 animate-pulse" />
+            <div className="h-4 bg-gray-300 rounded w-1/4 animate-pulse" />
+          </div>
+        </div>
 
-{/* Summary skeleton */}
-<div className="space-y-3 mb-8">
-  <div className="h-5 bg-gray-300 rounded w-1/4 animate-pulse" />
-  <div className="space-y-2">
-    <div className="h-3 bg-gray-200 rounded w-full animate-pulse" />
-    <div className="h-3 bg-gray-200 rounded w-5/6 animate-pulse" />
-    <div className="h-3 bg-gray-200 rounded w-4/5 animate-pulse" />
-  </div>
-</div>
+        {/* Summary skeleton */}
+        <div className="space-y-3 mb-8">
+          <div className="h-5 bg-gray-300 rounded w-1/4 animate-pulse" />
+          <div className="space-y-2">
+            <div className="h-3 bg-gray-200 rounded w-full animate-pulse" />
+            <div className="h-3 bg-gray-200 rounded w-5/6 animate-pulse" />
+            <div className="h-3 bg-gray-200 rounded w-4/5 animate-pulse" />
+          </div>
+        </div>
 
         {/* Experience skeleton */}
         <div className="space-y-6">
@@ -124,6 +121,7 @@ interface ResumeUploadProps {
 }
 
 export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
+  const supabase = createClient() 
   const [uploading, setUploading] = useState(false)
   const [parsing, setParsing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -142,8 +140,6 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
     setProcessingStage('uploading')
     //added delay
     await new Promise(resolve => setTimeout(resolve, 1000))
-
-    
 
     try {
       // Get current user
@@ -170,7 +166,6 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
       setProcessingStage('processing')
       //Added delay
       await new Promise(resolve => setTimeout(resolve, 1500))
-  
 
       // Save resume record to database
       const { data: resumeData, error: dbError } = await supabase
@@ -201,8 +196,19 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
       let extractedText = ''
       if (file.type === 'application/pdf') {
         try {
+          // Use the legacy build that doesn't require a worker
+          const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf')
+          
+          if (pdfjsLib.GlobalWorkerOptions) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = ''
+        }
+          
+
           const arrayBuffer = await file.arrayBuffer()
           const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+          
+          console.log('PDF loaded successfully')
+          console.log('Pages:', pdf.numPages)
           
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i)
@@ -212,13 +218,19 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
               .join(' ')
             extractedText += pageText + ' '
           }
+          
+          console.log('PDF parsing successful!')
           console.log('Extracted text length:', extractedText.length)
-        } catch (error) {
-          console.error('Client-side PDF extraction failed:', error)
+          console.log('First 1000 chars:', extractedText.substring(0, 1000))
+          
+        } catch (pdfError) {
+          console.error('PDF extraction error:', pdfError)
+          // Don't throw - continue with empty text and let server handle it
         }
       }
       //delay after pdf extraction
       await new Promise(resolve => setTimeout(resolve, 500))
+      
       // Parse resume with AI
       const parseResponse = await fetch('/api/parse-resume', {
         method: 'POST',
@@ -251,7 +263,7 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
       setParsing(false)
       setSuccess('Resume uploaded and parsed successfully!')
       //delay before success
-       await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise(resolve => setTimeout(resolve, 500))
 
       if (onUploadSuccess) {
         onUploadSuccess(parseResult.resume)
@@ -263,7 +275,7 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
       setUploading(false)
       setParsing(false)
     }
-  }, [onUploadSuccess])
+  }, [onUploadSuccess, supabase])
 
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,

@@ -4,8 +4,12 @@ import React from 'react'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
-import { ResumeUpload } from '@/components/resume/ResumeUpload'
+import { createClient } from '@/lib/supabase-browser'
+
+import dynamic from 'next/dynamic'
+const ResumeUpload = dynamic(() => import('@/components/resume/ResumeUpload').then(mod => mod.ResumeUpload), {
+  ssr: false
+})
 import { FavoriteJobs } from '@/components/jobs/FavoriteJobs'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -20,10 +24,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { FileText, Search, User, Trash2, ChevronRight, Home, BarChart, Bell, Star, Upload, Sparkles, Zap, Target, Shield, TrendingUp, Briefcase, CheckCircle, Activity, Clock } from 'lucide-react'
+import { FileText, Search, User, Trash2, ChevronRight, Home, BarChart, Bell, Star, Upload, Sparkles, Zap, Target, Shield, TrendingUp, Briefcase, CheckCircle, Activity, Clock, PenTool } from 'lucide-react'
 import { ManualSearchForm, ManualSearchParams } from '@/components/search/ManualSearchForm'
 
+
+
 export default function Dashboard() {
+  const supabase = createClient()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [resumes, setResumes] = useState<any[]>([])
@@ -353,6 +360,19 @@ export default function Dashboard() {
   }
 
   const handleManualSearch = async (searchParams: ManualSearchParams) => {
+
+    if (!user) {
+    console.error('No user found when trying to search')
+    setNotifications(prev => [{
+      id: Date.now().toString(),
+      type: 'error',
+      message: 'You must be logged in to search',
+      read: false,
+      timestamp: new Date()
+    }, ...prev])
+    return
+  }
+
     setSearchingJobs('manual')
     setSearchProgress(0)
     
@@ -516,12 +536,17 @@ export default function Dashboard() {
         'upload': 'Upload Resume',
         'resumes': 'My Resumes',
         'search': 'Job Search',
+        'templates': 'Templates',
+        'coverletters': 'Cover Letters',
         'favorites': 'Favorites'
       }
       breadcrumbs.push({
         name: tabNames[activeTab] || activeTab,
         href: `/dashboard#${activeTab}`,
-        icon: activeTab === 'search' ? Search : activeTab === 'favorites' ? Star : FileText
+        icon: activeTab === 'search' ? Search : 
+              activeTab === 'favorites' ? Star : 
+              activeTab === 'coverletters' ? PenTool :
+              FileText
       })
     }
     
@@ -578,15 +603,15 @@ export default function Dashboard() {
               )}
               
               <div className="hidden md:flex items-center gap-4">
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-                  <TrendingUp className="h-4 w-4 text-gray-700" />
+                <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <TrendingUp className="h-4 w-4 text-blue-600" />
                   <span className="text-sm">
                     <span className="font-bold text-gray-900">{todayStats.jobsFound}</span>
                     <span className="text-gray-600 ml-1">jobs today</span>
                   </span>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-                  <Activity className="h-4 w-4 text-gray-700" />
+                <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
+                  <Activity className="h-4 w-4 text-green-600" />
                   <span className="text-sm">
                     <span className="font-bold text-gray-900">{todayStats.searchesRun}</span>
                     <span className="text-gray-600 ml-1">searches</span>
@@ -600,16 +625,16 @@ export default function Dashboard() {
                     setShowNotifications(!showNotifications)
                     if (!showNotifications) markNotificationsAsRead()
                   }}
-                  className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
+                  className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-blue-50 rounded-lg transition-all"
                 >
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full"></span>
+                    <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-blue-600 rounded-full animate-pulse"></span>
                   )}
                 </button>
                 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50">
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
                     <div className="p-4 border-b border-gray-100">
                       <h3 className="font-semibold text-gray-900">Notifications</h3>
                     </div>
@@ -619,10 +644,10 @@ export default function Dashboard() {
                       ) : (
                         <div className="divide-y divide-gray-100">
                           {notifications.slice(0, 10).map((notification) => (
-                            <div key={notification.id} className="p-4 hover:bg-gray-50 transition-colors">
+                            <div key={notification.id} className="p-4 hover:bg-blue-50 transition-colors">
                               <div className="flex items-start gap-3">
                                 <div className={`mt-1 h-2 w-2 rounded-full ${
-                                  notification.read ? 'bg-gray-300' : 'bg-blue-600'
+                                  notification.read ? 'bg-gray-300' : 'bg-blue-600 animate-pulse'
                                 }`} />
                                 <div className="flex-1">
                                   <p className="text-sm text-gray-900">{notification.message}</p>
@@ -640,8 +665,8 @@ export default function Dashboard() {
                 )}
               </div>
               
-              <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
-                <User className="h-5 w-5 text-gray-600" />
+              <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                <User className="h-5 w-5 text-blue-600" />
                 <span className="text-gray-700 text-sm font-medium">
                   {user.user_metadata?.first_name || user.email?.split('@')[0]}
                 </span>
@@ -649,8 +674,8 @@ export default function Dashboard() {
               
               <Button 
                 onClick={handleLogout} 
-                variant="destructive"
-                className="bg-red-600 hover:bg-red-700 text-white"
+                variant="outline"
+                className="border-red-200 text-red-600 hover:bg-red-50"
               >
                 Logout
               </Button>
@@ -679,45 +704,58 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="bg-white border border-gray-200 p-1 rounded-lg grid w-full grid-cols-6">
+            <TabsList className="bg-white border border-gray-200 p-1 rounded-lg grid w-full grid-cols-7">
               <TabsTrigger 
                 value="overview" 
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-50 rounded-md transition-all"
               >
                 <User className="h-4 w-4 mr-2" />
                 Overview
               </TabsTrigger>
+              
               <TabsTrigger 
                 value="upload"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-50 rounded-md transition-all"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Upload
               </TabsTrigger>
+              
               <TabsTrigger 
                 value="resumes"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-50 rounded-md transition-all"
               >
                 <FileText className="h-4 w-4 mr-2" />
                 My Resumes ({resumes.length})
               </TabsTrigger>
+              
               <TabsTrigger 
                 value="search"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-50 rounded-md transition-all"
               >
                 <Search className="h-4 w-4 mr-2" />
                 Search
               </TabsTrigger>
+              
               <TabsTrigger 
-              value="templates"
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
->
-              <FileText className="h-4 w-4 mr-2" />
-              Templates
+                value="templates"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-50 rounded-md transition-all"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Templates
               </TabsTrigger>
+              
+              <TabsTrigger 
+                value="coverletters"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-50 rounded-md transition-all"
+              >
+                <PenTool className="h-4 w-4 mr-2" />
+                Cover Letters
+              </TabsTrigger>
+              
               <TabsTrigger 
                 value="favorites"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md transition-all"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-50 rounded-md transition-all"
               >
                 <Star className="h-4 w-4 mr-2" />
                 Favorites
@@ -726,7 +764,7 @@ export default function Dashboard() {
 
             <TabsContent value="overview" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card className="bg-white border-gray-200 hover:shadow-lg transition-shadow">
+                <Card className="bg-white border-gray-200 hover:shadow-lg transition-shadow hover:border-blue-200">
                   <CardHeader>
                     <CardTitle className="text-gray-900 flex items-center gap-2">
                       <Zap className="h-5 w-5 text-blue-600" />
@@ -736,37 +774,48 @@ export default function Dashboard() {
                   <CardContent className="space-y-3">
                     <Button 
                       onClick={() => setActiveTab('upload')}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white shadow-sm"
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Resume
                     </Button>
+                    
+                    <Button 
+                      onClick={() => setActiveTab('coverletters')}
+                      className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
+                    >
+                      <PenTool className="h-4 w-4 mr-2" />
+                      Cover Letters
+                    </Button>
+                    
                     <Button 
                       onClick={() => setActiveTab('search')}
-                      className="w-full bg-gray-600 hover:bg-gray-700 text-white"
+                      className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
                     >
                       <Search className="h-4 w-4 mr-2" />
                       Manual Search
                     </Button>
+                    
                     <Button 
                       onClick={() => setActiveTab('resumes')}
-                      className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
+                      className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
                       disabled={resumes.length === 0}
                     >
                       <Briefcase className="h-4 w-4 mr-2" />
                       My Resumes
                     </Button>
+                    
                     <Button 
-                    onClick={() => router.push('/dashboard/resume-builder')}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => router.push('/dashboard/resume-builder')}
+                      className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
                     >
-                    <FileText className="h-4 w-4 mr-2" />
-                   Resume Templates
+                      <FileText className="h-4 w-4 mr-2" />
+                      Resume Templates
                     </Button>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white border-gray-200 hover:shadow-lg transition-shadow">
+                <Card className="bg-white border-gray-200 hover:shadow-lg transition-shadow hover:border-blue-200">
                   <CardHeader>
                     <CardTitle className="text-gray-900 flex items-center gap-2">
                       <BarChart className="h-5 w-5 text-blue-600" />
@@ -774,30 +823,30 @@ export default function Dashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
                       <span className="text-gray-600">Resumes:</span>
                       <span className="font-bold text-gray-900 text-lg">{resumes.length}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-100">
                       <span className="text-gray-600">AI Parsed:</span>
-                      <span className="font-bold text-green-600 text-lg">
+                      <span className="font-bold text-green-700 text-lg">
                         {resumes.filter(r => r.extracted_keywords).length}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg border border-purple-100">
                       <span className="text-gray-600">ATS Optimized:</span>
-                      <span className="font-bold text-blue-600 text-lg">
+                      <span className="font-bold text-purple-700 text-lg">
                         {resumes.filter(r => r.is_ats_optimized).length}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-100">
                       <span className="text-gray-600">Jobs Found:</span>
-                      <span className="font-bold text-gray-900 text-lg">{todayStats.jobsFound}</span>
+                      <span className="font-bold text-orange-700 text-lg">{todayStats.jobsFound}</span>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white border-gray-200 hover:shadow-lg transition-shadow">
+                <Card className="bg-white border-gray-200 hover:shadow-lg transition-shadow hover:border-blue-200">
                   <CardHeader>
                     <CardTitle className="text-gray-900 flex items-center gap-2">
                       <Clock className="h-5 w-5 text-blue-600" />
@@ -836,20 +885,20 @@ export default function Dashboard() {
 
               {/* Stats Overview */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
+                <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-200 transition-all text-center">
                   <div className="text-3xl font-bold text-gray-900">{resumes.length}</div>
                   <div className="text-sm text-gray-600 mt-1">Total Resumes</div>
                 </div>
-                <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-                  <div className="text-3xl font-bold text-green-600">{todayStats.jobsFound}</div>
+                <div className="bg-green-50 rounded-xl p-6 border border-green-200 text-center">
+                  <div className="text-3xl font-bold text-green-700">{todayStats.jobsFound}</div>
                   <div className="text-sm text-gray-600 mt-1">Jobs Found Today</div>
                 </div>
-                <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-                  <div className="text-3xl font-bold text-blue-600">{todayStats.searchesRun}</div>
+                <div className="bg-blue-50 rounded-xl p-6 border border-blue-200 text-center">
+                  <div className="text-3xl font-bold text-blue-700">{todayStats.searchesRun}</div>
                   <div className="text-sm text-gray-600 mt-1">Searches Today</div>
                 </div>
-                <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-                  <div className="text-3xl font-bold text-gray-900">10+</div>
+                <div className="bg-purple-50 rounded-xl p-6 border border-purple-200 text-center">
+                  <div className="text-3xl font-bold text-purple-700">10+</div>
                   <div className="text-sm text-gray-600 mt-1">Job Boards</div>
                 </div>
               </div>
@@ -943,13 +992,13 @@ export default function Dashboard() {
                                 
                                 <div className="flex flex-wrap gap-2 mt-3">
                                   {resume.is_ats_optimized && (
-                                    <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
+                                    <span className="inline-flex items-center gap-1 bg-green-50 border border-green-200 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
                                       <Star className="h-3 w-3" />
                                       ATS Optimized
                                     </span>
                                   )}
                                   {resume.extracted_keywords && (
-                                    <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
+                                    <span className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
                                       <CheckCircle className="h-3 w-3" />
                                       AI Parsed
                                     </span>
@@ -1033,13 +1082,13 @@ export default function Dashboard() {
                               )}
                               <Button 
                                 size="sm" 
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
                                 onClick={() => handleJobSearch(resume.id)}
                                 disabled={!resume.extracted_keywords || searchingJobs === resume.id}
                               >
                                 {searchingJobs === resume.id ? (
                                   <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent mr-2"></div>
                                     Searching...
                                   </>
                                 ) : (
@@ -1051,8 +1100,8 @@ export default function Dashboard() {
                               </Button>
                               <Button 
                                 size="sm" 
-                                variant={resume.is_ats_optimized ? "default" : "secondary"}
-                                className={resume.is_ats_optimized ? "bg-green-500 hover:bg-green-600 text-white" : "bg-gray-600 hover:bg-gray-700 text-white"}
+                                variant={resume.is_ats_optimized ? "default" : "outline"}
+                                className={resume.is_ats_optimized ? "bg-green-600 hover:bg-green-700 text-white" : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"}
                                 onClick={() => {
                                   if (resume.is_ats_optimized) {
                                     router.push(`/dashboard/ats-results/${resume.id}`)
@@ -1084,7 +1133,7 @@ export default function Dashboard() {
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                className="border-red-300 text-red-600 hover:bg-red-50"
+                                className="border-red-200 text-red-600 hover:bg-red-50"
                                 onClick={() => setResumeToDelete({id: resume.id, filename: resume.filename})}
                                 disabled={deletingResume === resume.id}
                               >
@@ -1105,28 +1154,76 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="search">
+  <Card className="bg-white border-gray-200">
+    <CardHeader>
+      <CardTitle className="text-gray-900 flex items-center gap-2">
+        <Search className="h-5 w-5 text-blue-600" />
+        Manual Job Search
+      </CardTitle>
+      <CardDescription className="text-gray-600">
+        Search for jobs across all major job boards without uploading a resume
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      {loading ? (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      ) : user ? (
+        <ManualSearchForm 
+          onSearch={handleManualSearch}
+          isSearching={searchingJobs === 'manual'}
+        />
+      ) : (
+        <div className="text-center py-8">
+          <p className="text-red-600">Please log in to use job search</p>
+        </div>
+      )}
+    </CardContent>
+  </Card>
+</TabsContent>
+
+            <TabsContent value="templates">
+              {/* This will redirect immediately when the tab is clicked */}
+              {activeTab === 'templates' && router.push('/dashboard/resume-builder')}
+            </TabsContent>
+
+            <TabsContent value="coverletters">
               <Card className="bg-white border-gray-200">
                 <CardHeader>
                   <CardTitle className="text-gray-900 flex items-center gap-2">
-                    <Search className="h-5 w-5 text-blue-600" />
-                    Manual Job Search
+                    <PenTool className="h-5 w-5 text-purple-600" />
+                    My Cover Letters
                   </CardTitle>
                   <CardDescription className="text-gray-600">
-                    Search for jobs across all major job boards without uploading a resume
+                    Create AI-powered cover letters tailored to specific job applications
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ManualSearchForm 
-                    onSearch={handleManualSearch}
-                    isSearching={searchingJobs === 'manual'}
-                  />
+                  <div className="text-center py-12">
+                    <PenTool className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-medium text-gray-900 mb-2">No cover letters yet</h3>
+                    <p className="text-gray-600 mb-6">Create your first AI-powered cover letter</p>
+                    <div className="flex gap-4 justify-center">
+                      <Button 
+                        onClick={() => router.push('/dashboard/cover-letters/new')}
+                        className="bg-purple-600 hover:bg-purple-700 text-white"
+                      >
+                        <PenTool className="h-4 w-4 mr-2" />
+                        Create New Cover Letter
+                      </Button>
+                      <Button 
+                        onClick={() => router.push('/dashboard/cover-letters')}
+                        variant="outline"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                      >
+                        View All Cover Letters
+                      </Button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            <TabsContent value="templates">
-            {/* This will redirect immediately when the tab is clicked */}
-            {activeTab === 'templates' && router.push('/dashboard/resume-builder')}
             </TabsContent>
 
             <TabsContent value="favorites">
@@ -1195,39 +1292,39 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
       <div className="mt-12 relative overflow-hidden">
-  <div className="bg-gradient-to-r from-blue-500 to-gray-500 rounded-2xl p-8 md:p-12 shadow-2xl">
-    <div className="relative z-10">
-      <div className="max-w-3xl mx-auto text-center">
-        <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-          Transform Your Resume with AI-Powered Templates
-        </h2>
-        <p className="text-lg md:text-xl text-green-50 mb-8 leading-relaxed">
-          Choose from professional templates, Google Docs, PDF, Simple Text or Word Docs, and get instant ATS scoring, and receive personalized suggestions. 
-          Convert your existing resume into a job-winning masterpiece in minutes.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button 
-            onClick={() => router.push('/dashboard/resume-builder')}
-            className="bg-white text-green-460 hover:bg-gray-100 px-8 py-6 text-lg font-semibold shadow-lg transform hover:scale-105 transition-all"
-          >
-            <Sparkles className="h-5 w-5 mr-2" />
-            Start Building Your Resume
-          </Button>
-          <div className="flex items-center gap-2 text-white">
-            <CheckCircle className="h-5 w-5" />
-            <span>Over 25+ Professional Templates To Choose From</span>
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 md:p-12 shadow-xl">
+          <div className="relative z-10">
+            <div className="max-w-3xl mx-auto text-center">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Transform Your Resume with AI-Powered Templates
+              </h2>
+              <p className="text-lg md:text-xl text-blue-50 mb-8 leading-relaxed">
+                Choose from professional templates, Google Docs, PDF, Simple Text or Word Docs, and get instant ATS scoring, and receive personalized suggestions. 
+                Convert your existing resume into a job-winning masterpiece in minutes.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <Button 
+                  onClick={() => router.push('/dashboard/resume-builder')}
+                  className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-6 text-lg font-semibold shadow-lg transform hover:scale-105 transition-all"
+                >
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Start Building Your Resume
+                </Button>
+                <div className="flex items-center gap-2 text-white">
+                  <CheckCircle className="h-5 w-5" />
+                  <span>Over 25+ Professional Templates To Choose From</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 opacity-10">
+            <FileText className="h-96 w-96" />
           </div>
         </div>
       </div>
     </div>
-    {/* Background decoration */}
-    <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 opacity-10">
-      <FileText className="h-96 w-96" />
-    </div>
-  </div>
-</div>
-    </div>
-    
   )
 }

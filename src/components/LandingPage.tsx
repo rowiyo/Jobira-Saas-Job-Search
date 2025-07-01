@@ -1,14 +1,18 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Sparkles, Target, Zap, Shield, Search, Upload, BarChart3, Star, Gauge, CheckCircle, Menu, X, Briefcase, Users, TrendingUp, Award } from 'lucide-react'
+
+
 
 export function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [currentTestimonial, setCurrentTestimonial] = useState(0)
+  const router = useRouter()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -116,7 +120,73 @@ export function LandingPage() {
               Upload Resume → AI Searches All Job Boards → Get Matched Jobs → Optimize ATS Score → Get Hired Faster
             </p>
 
+          {/* Hero Section */}
+<section className="relative py-20 lg:py-32 overflow-hidden bg-gray-900 w-screen -mx-[50vw] left-[50%] right-[50%]">
+  {/* Subtle pattern overlay */}
+  <div className="absolute inset-0">
+    <div className="absolute inset-0 bg-[linear-gradient(to_right,#374151_1px,transparent_1px),linear-gradient(to_bottom,#374151_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-10"></div>
+  </div>
+  
+  {/* Gradient orbs for subtle color */}
+  <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl opacity-10"></div>
+  <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl opacity-10"></div>
+  
+  {/* CHANGED: Removed max-w-7xl and mx-auto to span full width */}
+  <div className="relative z-10 px-4 sm:px-6 lg:px-8">
+    <div className="text-center">
+      <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
+        Your AI-Powered Career Command Center
+      </h1>
+      {/* OPTIONAL: Keep the description text constrained for readability */}
+      <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
+        Upload your resume once, search jobs everywhere. Get ATS optimization, 
+        professional templates, and intelligent job matching—all in one platform.
+      </p>
+      <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+        
+        
+      
+        
+        <Button 
+          onClick={() => router.push('/auth')}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg font-semibold"
+        >
+          Start Your Job Search
+          <Search className="ml-2 h-5 w-5" />
+        </Button>
+
+
+        
+        <div className="flex items-center gap-2 text-gray-400">
+          <CheckCircle className="h-5 w-5 text-green-500" />
+          <span>No credit card required</span>
+        </div>
+      </div>
+      
+      {/* Stats - OPTIONAL: Keep constrained or remove max-w-4xl for full width */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+        <div className="text-center">
+          <div className="text-3xl font-bold text-blue-400">10+</div>
+          <div className="text-gray-400">Job Boards</div>
+        </div>
+        <div className="text-center">
+          <div className="text-3xl font-bold text-blue-400">98%</div>
+          <div className="text-gray-400">ATS Score</div>
+        </div>
+        <div className="text-center">
+          <div className="text-3xl font-bold text-blue-400">1000s</div>
+          <div className="text-gray-400">Jobs Daily</div>
+        </div>
+        <div className="text-center">
+          <div className="text-3xl font-bold text-blue-400">5min</div>
+          <div className="text-gray-400">Setup Time</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
           
+
             
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
