@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-browser'
-
+import { DashboardLayoutWrapper } from '@/components/dashboard/DashboardLayoutWrapper'
 import dynamic from 'next/dynamic'
 const ResumeUpload = dynamic(() => import('@/components/resume/ResumeUpload').then(mod => mod.ResumeUpload), {
   ssr: false
@@ -44,6 +44,9 @@ export default function Dashboard() {
   const [selectedResumes, setSelectedResumes] = useState<Set<string>>(new Set())
   const [showBulkDelete, setShowBulkDelete] = useState(false)
   
+  //Turns off and on new sidebar
+  const USE_SIDEBAR = true
+
   const handleBulkDelete = async () => {
     if (selectedResumes.size === 0) return
     
@@ -542,32 +545,41 @@ export default function Dashboard() {
   const unreadCount = notifications.filter(n => !n.read).length
 
   const getBreadcrumbs = () => {
-    const breadcrumbs = [
-      { name: 'Home', href: '/', icon: Home },
-      { name: 'Dashboard', href: '/dashboard', icon: BarChart }
-    ]
-    
-    if (activeTab !== 'overview') {
-      const tabNames: { [key: string]: string } = {
-        'upload': 'Upload Resume',
-        'resumes': 'My Resumes',
-        'search': 'Job Search',
-        'templates': 'Templates',
-        'coverletters': 'Cover Letters',
-        'favorites': 'Favorites'
+  const breadcrumbs = [
+    { name: 'Home', href: '/', icon: Home },
+    { 
+      name: 'Dashboard', 
+      href: '/dashboard', 
+      icon: BarChart,
+      onClick: (e: React.MouseEvent) => {
+        e.preventDefault()
+        setActiveTab('overview')
       }
-      breadcrumbs.push({
-        name: tabNames[activeTab] || activeTab,
-        href: `/dashboard#${activeTab}`,
-        icon: activeTab === 'search' ? Search : 
-              activeTab === 'favorites' ? Star : 
-              activeTab === 'coverletters' ? PenTool :
-              FileText
-      })
     }
-    
-    return breadcrumbs
+  ]
+  
+  if (activeTab !== 'overview') {
+    const tabNames: { [key: string]: string } = {
+      'upload': 'Upload Resume',
+      'resumes': 'My Resumes',
+      'search': 'Job Search',
+      'templates': 'Templates',
+      'coverletters': 'Cover Letters',
+      'favorites': 'Favorites'
+    }
+    breadcrumbs.push({
+      name: tabNames[activeTab] || activeTab,
+      href: `/dashboard#${activeTab}`,
+      icon: activeTab === 'search' ? Search : 
+            activeTab === 'favorites' ? Star : 
+            activeTab === 'coverletters' ? PenTool :
+            FileText,
+      onClick: undefined
+    })
   }
+  
+  return breadcrumbs
+}
 
   if (loading) {
     return (
@@ -720,84 +732,39 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <nav className="flex items-center gap-2 text-sm">
-          {getBreadcrumbs().map((crumb, index) => (
-            <React.Fragment key={crumb.href}>
-              {index > 0 && <ChevronRight className="h-4 w-4 text-gray-400" />}
-              <Link 
-                href={crumb.href} 
-                className="flex items-center gap-1 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <crumb.icon className="h-3.5 w-3.5" />
-                <span>{crumb.name}</span>
-              </Link>
-            </React.Fragment>
-          ))}
-        </nav>
+  {getBreadcrumbs().map((crumb, index) => (
+    <React.Fragment key={crumb.href}>
+      {index > 0 && <ChevronRight className="h-4 w-4 text-gray-400" />}
+      <Link 
+        href={crumb.href} 
+        onClick={crumb.onClick}
+        className="flex items-center gap-1 text-gray-600 hover:text-gray-900 transition-colors"
+      >
+        <crumb.icon className="h-3.5 w-3.5" />
+        <span>{crumb.name}</span>
+      </Link>
+    </React.Fragment>
+  ))}
+</nav>
       </div>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 sm:px-0">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-            <TabsList className="bg-gray-50 border border-gray-200 p-1 rounded-lg grid w-full grid-cols-7">
-              <TabsTrigger 
-                value="overview" 
-                className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 rounded-md transition-all"
-              >
-                <Gauge className="h-4 w-4 mr-2" />
-                Overview
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="upload"
-                className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 rounded-md transition-all"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="resumes"
-                className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 rounded-md transition-all relative"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                My Resumes
-                {resumes.length > 0 && (
-                  <span className="ml-2 bg-gray-900 text-white text-xs px-1.5 py-0.5 rounded-full">{resumes.length}</span>
-                )}
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="search"
-                className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 rounded-md transition-all"
-              >
-                <Search className="h-4 w-4 mr-2" />
-                Search
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="templates"
-                className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 rounded-md transition-all"
-              >
-                <Layers className="h-4 w-4 mr-2" />
-                Templates
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="coverletters"
-                className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 rounded-md transition-all"
-              >
-                <PenTool className="h-4 w-4 mr-2" />
-                Cover Letters
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="favorites"
-                className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 rounded-md transition-all"
-              >
-                <Star className="h-4 w-4 mr-2" />
-                Favorites
-              </TabsTrigger>
-            </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className={USE_SIDEBAR ? "" : "space-y-8"}>
+
+            <DashboardLayoutWrapper
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            resumes={resumes}
+            user={user}
+            profile={profile}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onLogout={handleLogout}
+            useSidebar={USE_SIDEBAR}
+            >
+            
+            </DashboardLayoutWrapper>
 
             <TabsContent value="overview" className="space-y-8">
               {/* Hero Section */}
@@ -1171,6 +1138,7 @@ export default function Dashboard() {
                                 )}
                                 
                                 {resume.extracted_keywords && (
+                                  
                                   <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                       {resume.extracted_keywords.currentJobTitle && (
