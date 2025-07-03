@@ -20,18 +20,18 @@ function TemplateThumbnail({ category }: { category: string }) {
   }
 
   return (
-    <div className={`w-full h-48 rounded-t-lg ${getTemplateStyle()} p-4`}>
+    <div className={`w-full h-32 rounded-t-lg ${getTemplateStyle()} p-3`}>
       <div className="h-full flex flex-col">
-        <div className="space-y-2 mb-3">
-          <div className="h-2 bg-gray-400 rounded w-3/4"></div>
-          <div className="h-2 bg-gray-300 rounded w-1/2"></div>
+        <div className="space-y-1.5 mb-2">
+          <div className="h-1.5 bg-gray-400 rounded w-3/4"></div>
+          <div className="h-1.5 bg-gray-300 rounded w-1/2"></div>
         </div>
-        <div className="space-y-1.5 flex-1">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-1.5 bg-gray-200 rounded w-full"></div>
+        <div className="space-y-1 flex-1">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-1 bg-gray-200 rounded w-full"></div>
           ))}
         </div>
-        <div className="text-xs font-medium text-gray-500 mt-2 uppercase">
+        <div className="text-xs font-medium text-gray-500 mt-1.5 uppercase">
           {category.replace('-', ' ')}
         </div>
       </div>
@@ -54,7 +54,7 @@ export function TemplateSelector({ templates, selectedTemplate, onSelect }: Temp
       {categories.map(category => (
         <div key={category}>
           <h3 className="text-lg font-semibold mb-3 capitalize">{category.replace('-', ' ')} Templates</h3>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 lg:grid-cols-4 gap-4">
             {templates
               .filter(t => t.category === category)
               .map(template => (
@@ -69,13 +69,13 @@ export function TemplateSelector({ templates, selectedTemplate, onSelect }: Temp
                     <TemplateThumbnail category={template.category} />
                     {selectedTemplate === template.id && (
                       <div className="absolute top-2 right-2 bg-blue-600 text-white rounded-full p-1">
-                        <Check className="h-4 w-4" />
+                        <Check className="h-3 w-3" />
                       </div>
                     )}
                   </div>
-                  <div className="p-4">
-                    <h4 className="font-medium">{template.name}</h4>
-                    <p className="text-sm text-gray-600">{template.description}</p>
+                  <div className="p-3">
+                    <h4 className="font-medium text-sm">{template.name}</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">{template.description}</p>
                   </div>
                 </Card>
               ))}

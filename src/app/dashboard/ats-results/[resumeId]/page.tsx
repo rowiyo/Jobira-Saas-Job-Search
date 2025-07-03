@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-browser'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +27,9 @@ import {
   Share2,
   RefreshCw
 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+
+const supabase = createClient()
 
 interface ATSResult {
   id: string
@@ -63,7 +66,7 @@ interface ATSResult {
 export default function ATSResultsPage() {
   const params = useParams()
   const router = useRouter()
-  const resumeId = params.resumeId as string // This is correct
+  const resumeId = params.resumeId as string
 
   console.log('ATS Results Page - resumeId:', resumeId)
   console.log('ATS Results Page - params:', params)
@@ -73,10 +76,23 @@ export default function ATSResultsPage() {
   const [atsResult, setAtsResult] = useState<ATSResult | null>(null)
   const [downloading, setDownloading] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
+  const [showResumeModal, setShowResumeModal] = useState(false)
+  const [optimizedContent, setOptimizedContent] = useState('')
 
   useEffect(() => {
     loadATSResults()
   }, [resumeId])
+
+  const loadOptimizedContent = async () => {
+    const { data } = await supabase
+      .from('resumes')
+      .select('optimized_content, parsed_content')
+      .eq('id', resumeId)
+      .single()
+    
+    setOptimizedContent(data?.optimized_content || data?.parsed_content || '')
+    setShowResumeModal(true)
+  }
 
   const loadATSResults = async () => {
     try {
@@ -259,6 +275,14 @@ export default function ATSResultsPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadOptimizedContent}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View Resume
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -584,6 +608,47 @@ export default function ATSResultsPage() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Resume Modal */}
+      <Dialog open={showResumeModal} onOpenChange={setShowResumeModal}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto" style={{ maxWidth: '90vw', width: '90vw' }}>
+          <DialogHeader>
+            <DialogTitle>Optimized Resume Content</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <div className="bg-gray-50 rounded-lg p-6 font-mono text-sm whitespace-pre-wrap">
+              {optimizedContent || 'No optimized content available'}
+            </div>
+            <div className="flex gap-4 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(optimizedContent)
+                  setCopySuccess(true)
+                  setTimeout(() => setCopySuccess(false), 2000)
+                }}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                {copySuccess ? 'Copied!' : 'Copy to Clipboard'}
+              </Button>
+              <Button
+                onClick={() => {
+                  const blob = new Blob([optimizedContent], { type: 'text/plain' })
+                  const url = window.URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = `ATS_Optimized_Resume.txt`
+                  a.click()
+                  window.URL.revokeObjectURL(url)
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download as Text
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -36,7 +36,6 @@ async function extractResumeText(resumeId: string): Promise<string> {
   throw new Error('Resume text not available. Please ensure the resume has been parsed.');
 }
 
-
 // Helper function to save optimized resume
 async function saveOptimizedResume(
   optimizedText: string,
@@ -121,7 +120,7 @@ SKILLS
 JavaScript, React, Node.js, Python, AWS, Docker`;
     }
     
-    // Use GPT-4 for optimization
+    // Use GPT for optimization
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [{
@@ -174,13 +173,27 @@ JavaScript, React, Node.js, Python, AWS, Docker`;
       throw new Error('Invalid optimization response from AI');
     }
     
-    // Save optimized resume
+    // Save optimized resume as a new entry
     const optimizedResume = await saveOptimizedResume(
       result.optimized_text,
       userId,
       resumeId,
       result
     );
+
+    // Update the ORIGINAL resume to mark it as optimized and save the optimized content
+    const { error: updateError } = await supabase
+      .from('resumes')
+      .update({
+        optimized_content: result.optimized_text,
+        ats_score: result.ats_score,
+        is_ats_optimized: true
+      })
+      .eq('id', resumeId);
+
+    if (updateError) {
+      console.error('Error updating original resume:', updateError);
+    }
     
     return NextResponse.json({
       optimizedResumeId: optimizedResume.id,
@@ -190,7 +203,7 @@ JavaScript, React, Node.js, Python, AWS, Docker`;
       analysis: result.analysis,
       message: 'Resume optimized successfully'
     });
-    
+
   } catch (error: any) {
     console.error('ATS optimization error:', error);
     return NextResponse.json({ 
